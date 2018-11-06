@@ -29,22 +29,19 @@ custom data cleaning
 df2["price"] = df2.price.str.replace(r"[a-zA-Z]",'').astype(float)
 
 '''
+preprocess both dataframes
+'''
+processed_data = Preprocessing().overall_preprocess(df1,df2)
+
+'''
 get numerical data
 '''
-
-# get names of numerical columns
-num_cols_df1,num_cols_df2 = Preprocessing().overall_preprocess(df1,df2)
-
-# convert to numpy matrix and calculate similarities for each cross product of samples
-num_matrix_1 = df1[num_cols_df1].values
-num_matrix_2 = df2[num_cols_df2].values
+num_matrix_1,num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
 
 '''
 calculate similarities
 '''
-
 num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
-
 
 '''
 concatenate all data

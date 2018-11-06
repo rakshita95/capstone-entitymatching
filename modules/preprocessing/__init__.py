@@ -33,9 +33,20 @@ class Preprocessing():
 
         :return: three matrices
         """
-        numerical_ind = []
+        divide_df = {"numerical_cols": [],"special_field_cols":[],"word_embedding_cols":[]}
         df1_num_col = df1.select_dtypes(include=[np.number]).columns.tolist()
         df2_num_col = df2.select_dtypes(include=[np.number]).columns.tolist()
-        return df1_num_col, df2_num_col
+        divide_df["numerical_cols"].append(df1_num_col)
+        divide_df["numerical_cols"].append(df2_num_col)
+
+
+
+        ## after finishing preprocessing
+        processed_data = {"numerical":[df1[df1_num_col].values,
+                                       df2[df2_num_col].values],
+                          "special_fields":[],
+                          "word_embedding_fields":[]}
+        return processed_data
+
 
 
