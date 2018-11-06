@@ -95,5 +95,6 @@ class similarities():
         pass
 
 if __name__ == "__main__":
-    pass
 
+
+    tmp = similarities().vector_similarity(matrix_1,matrix_2)

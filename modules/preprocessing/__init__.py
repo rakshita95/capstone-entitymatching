@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 #sys.path.append('..')
-from preprocessing import word_embeddings
+#from preprocessing import word_embeddings
 
 class Preprocessing():
     def _init__(self):
@@ -20,7 +20,7 @@ class Preprocessing():
         """
         pass
 
-    def overall_preprocess(self):
+    def overall_preprocess(self,df1,df2):
         """
         This function divide the given raw data into three sub-dataset (or numpy matrices):
         - numerical matrix
@@ -33,7 +33,9 @@ class Preprocessing():
 
         :return: three matrices
         """
-        pass
-
+        numerical_ind = []
+        df1_num_col = df1.select_dtypes(include=[np.number]).columns.tolist()
+        df2_num_col = df2.select_dtypes(include=[np.number]).columns.tolist()
+        return df1_num_col, df2_num_col
 
 
