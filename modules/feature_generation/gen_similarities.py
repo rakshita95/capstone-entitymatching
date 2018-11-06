@@ -7,6 +7,7 @@ import itertools
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from jellyfish import levenshtein_distance
 
 class similarities():
 
@@ -14,7 +15,7 @@ class similarities():
         pass
 
     @staticmethod
-    def __gen_cross_product(matrix_1,matrix_2,func,num = True):
+    def __gen_cross_product(matrix_1,matrix_2,func,embedding = False):
         """
         This function gets called when a certain type of similarity is calculated.
         It is a private function that can only be called within similarities()
@@ -32,7 +33,7 @@ class similarities():
 
         output = np.empty(shape = (matrix_1_num_sample*matrix_2_num_sample,num_fields))
         for (ind, (array_1,array_2)) in enumerate(itertools.product(matrix_1,matrix_2)):
-            if num == False:
+            if embedding == True:
                 output[ind] = func(array_1,array_2)
             else:
                 output[ind] = np.apply_along_axis(func,0,array_1,array_2)
@@ -65,7 +66,7 @@ class similarities():
         return out
 
 
-    def vector_similarity(self,matrix_1,matrix_2,method = "cosine"):
+    def vector_similarity_on_matrix(self,matrix_1,matrix_2,method = "cosine"):
         '''
         calculates text similarities given word embeddings fields
 
@@ -80,21 +81,28 @@ class similarities():
             tmp = np.round(cosine_similarity(a,b),3)
             return np.diag(tmp)
         if method == "cosine":
-            out = similarities().__gen_cross_product(matrix_1,matrix_2,cosine,num = False)
+            out = similarities().__gen_cross_product(matrix_1,matrix_2,cosine,embedding = True)
         return out
 
-    def text_similarity(self,matrix_1,matrix_2, method = "levenshtein distance"):
+    def text_similarity_on_matrix(self,matrix_1,matrix_2, method = "lavenshtein"):
         """
 
-        :param matrix_1:
-        :param matrix_2:
-        :param method:
-        :return: a 2-D array of similarities for all embedding records
+        :param matrix_1,matrix_2:
+        both matrices should have the same shape[1] - number of fields
+        with potentially different shape[0] - number of samples
+        Order of fields should also be aligned
+        :param method: specified similarity metric to use
+        :return: a 2-D array of similarities for all special text records
         of all possible combination of samples
         """
-        pass
+        def lavenshtein(a,b):
+            tmp = [levenshtein_distance(x, y) for i, x in enumerate(a) for j, y in enumerate(b) if i == j]
+            return np.asarray(tmp)
+        if method == "lavenshtein":
+            out = similarities().__gen_cross_product(matrix_1,matrix_2,lavenshtein)
+        return out
+
 
 if __name__ == "__main__":
+    pass
 
-
-    tmp = similarities().vector_similarity(matrix_1,matrix_2)
