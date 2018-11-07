@@ -20,8 +20,15 @@ def test_vector_similarity_on_matrix():
     matrix_2 = np.array([[[2,2,2],[2,3,4],[1,1,1]]])
 
     tmp = similarities().vector_similarity_on_matrix(matrix_1,matrix_2)
-    desired = np.array(  [[1, 0.993,0.87],[0.953, 0.844, 1 ]])
+    desired = np.array([[1, 0.993,0.87],[0.953, 0.844, 1]])
     assert(np.array_equal(tmp,desired))
+
+def test_vector_similarity_on_matrix_empty(): #check case where one of the input matrix is empty
+    matrix_2 = np.array([[[2,2,2],[2,3,4],[1,1,1]]])
+
+    tmp = similarities().vector_similarity_on_matrix(np.array([]),matrix_2)
+    desired = np.array([[1, 0.993,0.87],[0.953, 0.844, 1]])
+    assert(tmp.size==0)
 
 
 def test_text_similarity_on_matrix():

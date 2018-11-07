@@ -77,12 +77,16 @@ class similarities():
         Order of fields should also be aligned
         :return:
         '''
-        def cosine(a,b):
-            tmp = np.round(cosine_similarity(a,b),3)
-            return np.diag(tmp)
-        if method == "cosine":
-            out = similarities().__gen_cross_product(matrix_1,matrix_2,cosine,embedding = True)
-        return out
+        if matrix_1.size != 0 and matrix_2.size != 0: #if both are not empty matrices
+            def cosine(a,b):
+                tmp = np.round(cosine_similarity(a,b),3)
+                return np.diag(tmp)
+            if method == "cosine":
+                out = similarities().__gen_cross_product(matrix_1,matrix_2,cosine,embedding = True)
+            return out
+        
+        else: #else return empty array
+            return np.array([])
 
     def text_similarity_on_matrix(self,matrix_1,matrix_2, method = "lavenshtein"):
         """

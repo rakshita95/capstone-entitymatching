@@ -18,30 +18,34 @@ import sys
 sys.path.append('..')
 from modules.preprocessing import Preprocessing
 from modules.feature_generation.gen_similarities import similarities
-df1 = pd.read_csv("data/amazon_sample.csv")
-df2 = pd.read_csv("data/google_sample.csv")
+#df1 = pd.read_csv("data/amazon_sample.csv")
+#df2 = pd.read_csv("data/google_sample.csv")
+df1 = pd.read_csv('/Users/shihhuayu/capstone/companies_data_neoway_subsample/reference.csv')
+df2 = pd.read_csv('/Users/shihhuayu/capstone/companies_data_neoway_subsample/input.csv')
 
 '''
 custom data cleaning 
 #we still need to convert currency. right now just ignoring currency effect
 '''
 
-df2["price"] = df2.price.str.replace(r"[a-zA-Z]",'').astype(float)
+#df2["price"] = df2.price.str.replace(r"[a-zA-Z]",'').astype(float)
 
 '''
 preprocess both dataframes
 '''
-processed_data = Preprocessing().overall_preprocess(df1,df2)
+processed_data = Preprocessing().overall_preprocess(df1,df2) #may take a while bc loading pretrained word embedding model
 
 '''
 get numerical data
 '''
 num_matrix_1,num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
+embed_matrix_1,embed_matrix_2 = processed_data["word_embedding_fields"][0],processed_data["word_embedding_fields"][1]
 
 '''
 calculate similarities
 '''
 num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
+embed_final_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
 
 '''
 concatenate all data
