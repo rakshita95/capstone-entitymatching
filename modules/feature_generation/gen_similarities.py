@@ -138,12 +138,12 @@ class similarities():
 
         # apply the functions
 
-        embeddings_sim = vector_similarity_on_matrix(matrix_1[:,embeddings],
-                                                     matrix_2[:,embeddings])
-        special_sim = text_similarity_on_matrix(matrix_1[:,special],
-                                                     matrix_2[:,special])
-        numeric_sim = numerical_similarity_on_matrix(matrix_1[:,numeric],
-                                                     matrix_2[:,numeric])
+        embeddings_sim = similarities().vector_similarity_on_matrix(matrix1[:,embeddings],
+                                                     matrix2[:,embeddings])
+        special_sim = similarities().text_similarity_on_matrix(matrix1[:,special],
+                                                     matrix2[:,special])
+        numeric_sim = similarities().numerical_similarity_on_matrix(matrix1[:,numeric],
+                                                     matrix2[:,numeric])
 
         # concatenate it and return
 
