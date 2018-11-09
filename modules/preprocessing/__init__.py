@@ -2,7 +2,7 @@ import numpy as np
 import sys
 from .word_embedding import Word_embedding
 from .process_text import Process_text
-from preprocess_special_columns import *
+from .preprocess_special_columns import *
 #sys.path.append('..')
 
 def divide_columns(df, special_columns):
@@ -27,7 +27,7 @@ def divide_columns(df, special_columns):
     for i in df.loc[0].tolist():
         if type(i) == str:
             embeddings.append(t)
-        elif type(i) == float or type(i) == int:
+        elif type(i) in [int, float, np.int64, np.float32]:
             numeric.append(t)
         t += 1
     return numeric, special, embeddings
@@ -44,7 +44,7 @@ class Preprocessing():
 
     def overall_preprocess(self,df1,df2,
                            special_columns,
-                           phone_number,
+                           phone_number=None,
                            path = '/Users/shihhuayu/capstone/GoogleNews-vectors-negative300.bin'):
         """
         This function divides the given raw data into three preprocessed sub-dataset (or numpy matrices):
@@ -78,7 +78,8 @@ class Preprocessing():
         divide_col['word_embedding_cols'] = w
 
 
-
+        print(divide_col)
+        divide_col['word_embedding_cols'] = []
         #process word embeddings
         if divide_col["word_embedding_cols"]: #process only if both col lists are not empty
             embed = Word_embedding(path) #initialization may take a while

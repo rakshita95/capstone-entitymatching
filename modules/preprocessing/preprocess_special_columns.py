@@ -6,7 +6,6 @@
 
 import re
 
-
 def preprocess_address(address):
     """
 
