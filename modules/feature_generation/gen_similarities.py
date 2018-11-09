@@ -106,6 +106,53 @@ class similarities():
             out = similarities().__gen_cross_product(matrix_1,matrix_2,lavenshtein)
         return out
 
+    def generate_similarity(self, matrix1, matrix2):
+        """
+        This function takes in the preprocessed matrices and calcualtes the
+        similarity between the different entries - it is assumed that the
+        columns are in the same order.
+
+        :param matrix1: matrix with the preprocessed features
+        :param matrix2: matrix that is supposed to be matches
+        :return: feature matrix for the machine learning model
+        """
+
+        def get_indices(matrix):
+            t = 0
+            embeddings = []
+            special = []
+            numeric = []
+            for i in matrix[0]:
+                if type(i) == list:
+                    embeddings.append(t)
+                elif type(i) == float or type(i) == int:
+                    numeric.append(t)
+                elif type(i) == str:
+                    special.append(t)
+                t += 1
+            return embeddings, special, numeric
+
+        # split matrix
+
+        embeddings, special, numeric = get_indices(matrix1)
+
+        # apply the functions
+
+        embeddings_sim = vector_similarity_on_matrix(matrix_1[:,embeddings],
+                                                     matrix_2[:,embeddings])
+        special_sim = text_similarity_on_matrix(matrix_1[:,special],
+                                                     matrix_2[:,special])
+        numeric_sim = numerical_similarity_on_matrix(matrix_1[:,numeric],
+                                                     matrix_2[:,numeric])
+
+        # concatenate it and return
+
+        features = np.concatenate((embeddings_sim,
+                                   special_sim,
+                                   numeric_sim),
+                                  axis=1)
+
+        return features
 
 if __name__ == "__main__":
     pass
