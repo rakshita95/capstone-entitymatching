@@ -44,6 +44,12 @@ class Word_embedding():
         """
         if bool(set(attribute_list)-set(df.columns.values))==True: #check if input attributes exist
             raise ValueError('Attributes provided do not exist.')
+        if type(attribute_list[0]) == int:
+            new = []
+            for i in attribute_list:
+                new.append(list(df.columns)[i])
+            attribute_list = new
+
         else:
             return np.swapaxes(np.vstack([[np.vstack(df[attribute].apply(str).apply(self.sentence_to_embedding))] for attribute in attribute_list]),0,1)
 
