@@ -61,16 +61,8 @@ class Preprocessing():
         """
         divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
-                      "word_embedding_cols":[["name","addressStreet","addressCity","addressState"],
-                                             ["name","addressStreet","addressCity","addressState"]]}
-        #TODO: write function "divide_columns" that returns divided column names (ie numerical, special, word embedding columns)
-        #and call the function here and save to "divide_col"
-        #so that divide thats in the value returned from function "divide_columns"
-        
-        #df1_num_col = df1.select_dtypes(include=[np.number]).columns.tolist() #TODO: move to function "divide_columns", and remove "serial" from col list
-        #df2_num_col = df2.select_dtypes(include=[np.number]).columns.tolist() #TODO: move to function "divide_columns", and remove "serial" from col list
-        #divide_col["numerical_cols"].append(df1_num_col) #TODO: move to function "divide_columns"
-        #divide_col["numerical_cols"].append(df2_num_col) #TODO: move to function "divide_columns"
+                      "word_embedding_cols":[]}
+
 
         n, s, w = divide_columns(df1, special_columns)
         divide_col['numerical_cols'] = n
