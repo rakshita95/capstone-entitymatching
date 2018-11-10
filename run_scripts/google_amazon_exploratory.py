@@ -15,13 +15,18 @@ This script calls functions from modules and completes a whole run for the googl
 
 import pandas as pd
 import sys
+import numpy as np
 sys.path.append('..')
 from modules.preprocessing import Preprocessing
+from modules.preprocessing.generate_labels import gen_labels
 from modules.feature_generation.gen_similarities import similarities
-#df1 = pd.read_csv("data/amazon_sample.csv")
-#df2 = pd.read_csv("data/google_sample.csv")
-df1 = pd.read_csv('/Users/shihhuayu/capstone/companies_data_neoway_subsample/reference.csv')
-df2 = pd.read_csv('/Users/shihhuayu/capstone/companies_data_neoway_subsample/input.csv')
+from sklearn.model_selection import train_test_split
+
+df1 = pd.read_csv("data/amazon_sample.csv")
+df2 = pd.read_csv("data/google_sample.csv")
+match = pd.read_csv("data/amazon_google_sample_match.csv")
+#df1 = pd.read_csv('/Users/shihhuayu/capstone/companies_data_neoway_subsample/reference.csv')
+#df2 = pd.read_csv('/Users/shihhuayu/capstone/companies_data_neoway_subsample/input.csv')
 
 '''
 custom data cleaning 
@@ -54,6 +59,9 @@ concatenate all data
 '''
 train test split
 '''
+y = gen_labels(df1['id'], df2['id'], match)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.33, stratify = y) #** NEEDS TESTING **
+
 
 '''
 modeling
