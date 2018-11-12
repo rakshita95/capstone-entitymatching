@@ -5,7 +5,7 @@ from .process_text import Process_text
 from .preprocess_special_columns import *
 #sys.path.append('..')
 
-def divide_columns(df, special_columns):
+def divide_columns(df, special_columns=[]):
     """
     Returns the indices of the numeric, word embedding and special value columns
     :param df1:
@@ -17,12 +17,15 @@ def divide_columns(df, special_columns):
     numeric = []
     special = []
 
-    if type(special_columns[1]) == str:
-        for s in special_columns:
-            t = list(df.columns).index(s)
-            special.append(t)
+    if special_columns:
+        if type(special_columns[1]) == str:
+            for s in special_columns:
+                t = list(df.columns).index(s)
+                special.append(t)
+        else:
+            special = special_columns
     else:
-        special = special_columns
+        special = []
 
     for i in df.loc[0].tolist():
         if type(i) == str:
@@ -43,7 +46,7 @@ class Preprocessing():
 
 
     def overall_preprocess(self,df1,df2,
-                           special_columns,
+                           special_columns=None,
                            phone_number=None,
                            path = '/Users/shihhuayu/capstone/GoogleNews-vectors-negative300.bin'):
         """
