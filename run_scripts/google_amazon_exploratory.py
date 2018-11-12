@@ -24,7 +24,7 @@ from sklearn.model_selection import train_test_split
 
 df1 = pd.read_csv("data/amazon_sample.csv")
 df2 = pd.read_csv("data/google_sample.csv")
-match = pd.read_csv("data/amazon_google_sample_match.csv")
+match_df = pd.read_csv("data/amazon_google_sample_match.csv")
 #df1 = pd.read_csv('/Users/shihhuayu/capstone/companies_data_neoway_subsample/reference.csv')
 #df2 = pd.read_csv('/Users/shihhuayu/capstone/companies_data_neoway_subsample/input.csv')
 
@@ -55,12 +55,15 @@ embed_final_data = similarities().vector_similarity_on_matrix(embed_matrix_1, em
 '''
 concatenate all data
 '''
+#return x
 
 '''
 train test split
 '''
-y = gen_labels(df1['id'], df2['id'], match)
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.33, stratify = y) #** NEEDS TESTING **
+y = gen_labels(df1['id'], df2['id'], match_df, 'idAmazon', 'idGoogleBase')
+print (y.shape[0] == x.shape[0])
+
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.33, stratify = y) 
 
 
 '''
