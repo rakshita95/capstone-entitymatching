@@ -73,8 +73,6 @@ class Preprocessing():
         divide_col['word_embedding_cols'] = w
 
 
-        print(divide_col)
-        divide_col['word_embedding_cols'] = []
         #process word embeddings
         if divide_col["word_embedding_cols"]: #process only if both col lists are not empty
             embed = Word_embedding(path) #initialization may take a while
