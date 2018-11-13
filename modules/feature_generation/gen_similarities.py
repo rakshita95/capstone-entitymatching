@@ -52,6 +52,9 @@ class similarities():
         :return: a 2-D array of similarities for all numerical records
         of allpossible combination of samples
         """
+        if not(matrix_1) or not(matrix_2):
+            print("empty matrix - could not calculate similarity")
+            return np.array([])
 
         def scaled_gaussian(a,b):
             return np.exp(-2 * abs(a - b) / (a + b + 1e-5))
@@ -104,6 +107,9 @@ class similarities():
         :return: a 2-D array of similarities for all special text records
         of all possible combination of samples
         """
+        if not(matrix_1) or not(matrix_2):
+            print("empty matrix - could not calculate similarity")
+            return np.array([])
         def lavenshtein(a,b):
             tmp = [levenshtein_distance(x, y) for i, x in enumerate(a) for j, y in enumerate(b) if i == j]
             return np.asarray(tmp)
@@ -121,6 +127,9 @@ class similarities():
         :param matrix2: matrix that is supposed to be matches
         :return: feature matrix for the machine learning model
         """
+        if not(matrix1) or not(matrix2):
+            print("empty matrix - could not calculate similarity")
+            return np.array([])
 
         def get_indices(matrix):
             t = 0
@@ -147,8 +156,8 @@ class similarities():
                                                      matrix2[:,embeddings])
         special_sim = similarities().text_similarity_on_matrix(matrix1[:,special],
                                                      matrix2[:,special])
-        numeric_sim = similarities().numerical_similarity_on_matrix(matrix1[:,numeric],
-                                                     matrix2[:,numeric])
+        numeric_sim = similarities().numerical_similarity_on_matrix(matrix1[:,numeric].astype(float),
+                                                     matrix2[:,numeric].astype(float))
 
         # concatenate it and return
 
