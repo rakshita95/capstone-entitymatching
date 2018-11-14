@@ -48,7 +48,7 @@ class Preprocessing():
     def overall_preprocess(self,df1,df2,
                            special_columns=None,
                            phone_number=None,
-                           path = '/Users/shihhuayu/capstone/GoogleNews-vectors-negative300.bin'):
+                           path='data/embeddings/GoogleNews-vectors-negative300.bin'):
         """
         This function divides the given raw data into three preprocessed sub-dataset (or numpy matrices):
         - numerical matrix

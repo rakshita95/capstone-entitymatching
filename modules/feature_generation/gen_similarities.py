@@ -68,8 +68,7 @@ class similarities():
             out = similarities().__gen_cross_product(matrix_1, matrix_2, min_max)
         return out
 
-
- def vector_similarity_on_matrix(self, matrix_1, matrix_2, method = "cosine"):
+    def vector_similarity_on_matrix(self, matrix_1, matrix_2, method = "cosine"):
         '''
         calculates text similarities given word embeddings fields
 
