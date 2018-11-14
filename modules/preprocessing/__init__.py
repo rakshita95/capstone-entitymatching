@@ -12,13 +12,21 @@ def divide_columns(df, special_columns=[]):
     :param special_columns:
     :return:
     """
+
+    def is_number(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
     t = 0
     embeddings = []
     numeric = []
     special = []
 
     if special_columns:
-        if type(special_columns[1]) == str:
+        if type(special_columns[0]) == str:
             for s in special_columns:
                 t = list(df.columns).index(s)
                 special.append(t)
@@ -27,12 +35,16 @@ def divide_columns(df, special_columns=[]):
     else:
         special = []
 
+    t = 0
+
     for i in df.loc[0].tolist():
         if type(i) == str:
             embeddings.append(t)
-        elif type(i) in [int, float, np.int64, np.float32]:
+        #elif type(i) in [int, float, np.int64, np.float32]:
+        elif is_number(i):
             numeric.append(t)
         t += 1
+
     return numeric, special, embeddings
 
 
@@ -44,12 +56,13 @@ class Preprocessing():
     def process_phone_num(self):
         pass
 
-
     def overall_preprocess(self,df1,df2,
                            special_columns=None,
                            phone_number=None,
                            path='data/embeddings/GoogleNews-vectors-negative300.bin'):
+
         """
+
         This function divides the given raw data into three preprocessed sub-dataset (or numpy matrices):
         - numerical matrix
         - special treatment columns
@@ -72,6 +85,11 @@ class Preprocessing():
         divide_col['special_field_cols'] = s
         divide_col['word_embedding_cols'] = w
 
+        print('**** df1 divide columns ****')
+        [print(i, ': ', df1.columns[j].values) for i, j in divide_col.items()]
+
+        print('\n','**** df2 divide columns ****')
+        [print(i, ': ', df2.columns[j].values) for i, j in divide_col.items()]
 
         #process word embeddings
         if divide_col["word_embedding_cols"]: #process only if both col lists are not empty
@@ -96,8 +114,8 @@ class Preprocessing():
 
         # process numeric columns
         if divide_col['numerical_cols']:
-            df1_numeric = df1.iloc[:, divide_col['numerical_cols']]
-            df2_numeric = df2.iloc[:, divide_col['numerical_cols']]
+            df1_numeric = np.array(df1.iloc[:, divide_col['numerical_cols']])
+            df2_numeric = np.array(df2.iloc[:, divide_col['numerical_cols']])
         else:
             df1_numeric = np.array([])
             df2_numeric = np.array([])
