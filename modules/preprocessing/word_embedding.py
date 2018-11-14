@@ -48,7 +48,6 @@ class Word_embedding():
             for i in attribute_list:
                 new.append(list(df.columns)[i])
             attribute_list = new
-            print(attribute_list)
         else:
             if bool(set(attribute_list) - set(
                     df.columns.values)) == True:  # check if input attributes exist

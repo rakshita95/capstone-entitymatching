@@ -52,7 +52,8 @@ class similarities():
         :return: a 2-D array of similarities for all numerical records
         of allpossible combination of samples
         """
-        if not(matrix_1) or not(matrix_2):
+        #if not(matrix_1) or not(matrix_2):
+        if not (matrix_1.size) or not (matrix_2.size):
             print("empty matrix - could not calculate similarity")
             return np.array([])
 
@@ -102,7 +103,7 @@ class similarities():
         :return: a 2-D array of similarities for all special text records
         of all possible combination of samples
         """
-        if not(matrix_1) or not(matrix_2):
+        if not(matrix_1.size) or not(matrix_2.size):
             print("empty matrix - could not calculate similarity")
             return np.array([])
         def lavenshtein(a,b):
@@ -122,7 +123,7 @@ class similarities():
         :param matrix2: matrix that is supposed to be matches
         :return: feature matrix for the machine learning model
         """
-        if not(matrix1) or not(matrix2):
+        if not(matrix1.size) or not(matrix2.size):
             print("empty matrix - could not calculate similarity")
             return np.array([])
 
