@@ -12,13 +12,13 @@ def divide_columns(df, special_columns=[]):
     :param special_columns:
     :return:
     """
-    t = 0
+
     embeddings = []
     numeric = []
     special = []
 
     if special_columns:
-        if type(special_columns[1]) == str:
+        if type(special_columns[0]) == str:
             for s in special_columns:
                 t = list(df.columns).index(s)
                 special.append(t)
@@ -27,12 +27,13 @@ def divide_columns(df, special_columns=[]):
     else:
         special = []
 
+    p = 0
     for i in df.loc[0].tolist():
         if type(i) == str:
             embeddings.append(t)
         elif type(i) in [int, float, np.int64, np.float32]:
             numeric.append(t)
-        t += 1
+        p += 1
     return numeric, special, embeddings
 
 
@@ -96,8 +97,8 @@ class Preprocessing():
 
         # process numeric columns
         if divide_col['numerical_cols']:
-            df1_numeric = df1.iloc[:, divide_col['numerical_cols']]
-            df2_numeric = df2.iloc[:, divide_col['numerical_cols']]
+            df1_numeric = df1.iloc[:, divide_col['numerical_cols']].as_matrix()
+            df2_numeric = df2.iloc[:, divide_col['numerical_cols']].as_matrix()
         else:
             df1_numeric = np.array([])
             df2_numeric = np.array([])
