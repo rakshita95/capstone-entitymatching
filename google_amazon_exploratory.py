@@ -84,8 +84,6 @@ print(x.shape)
 '''
 train test split
 '''
-
-
 y = gen_labels(df1_id_col, df2_id_col, match_df, 'idAmazon', 'idGoogleBase')
 
 print(y.shape[0] == x.shape[0])
@@ -103,6 +101,12 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.33, stra
 '''
 modeling
 '''
+col_means = np.nanmean(x_train,axis=0)
+inds_train  = np.where(np.isnan(x_train))
+inds_test = np.where(np.isnan(x_test))
+x_train[inds_train]=np.take(col_means, inds_train[1])
+x_test[inds_test]=np.take(col_means, inds_test[1])
+
 from sklearn.utils import resample
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_curve,  precision_score, recall_score, f1_score

@@ -2,6 +2,49 @@ import numpy as np
 import gensim
 import nltk
 from .process_text import Process_text
+from collections import defaultdict
+import math
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+
+class MeanEmbeddingVectorizer():
+    def __init__(self, word2vec):
+        self.word2vec = word2vec
+        # if a text is empty we should return a vector of zeros
+        # with the same dimensionality as all the other vectors
+        self.dim = word2vec.vector_size
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return np.array([np.mean([self.word2vec[w] for w in words if w in self.word2vec]
+                    or [np.zeros(self.dim)], axis=0) for words in X])
+
+
+class TfidfEmbeddingVectorizer():
+    def __init__(self, word2vec):
+        self.word2vec = word2vec
+        self.word2weight = None
+        self.dim = word2vec.vector_size
+
+    def fit(self, X, y=None):
+        tfidf = TfidfVectorizer(analyzer=lambda x: x)
+        tfidf.fit(X)
+        # if a word was never seen - it must be at least as infrequent
+        # as any of the known words - so the default idf is the max of 
+        # known idf's
+        max_idf = max(tfidf.idf_)
+        self.word2weight = defaultdict(lambda: max_idf,
+            [(w, tfidf.idf_[i]) for w, i in tfidf.vocabulary_.items()])
+
+        return self
+
+    def transform(self, X):
+        return np.array([np.mean([self.word2vec[w] * self.word2weight[w]
+                         for w in words if w in self.word2vec] or
+                        [np.zeros(self.dim)], axis=0) for words in X])
+
 
 class Word_embedding():
     def __init__(self,path_to_pretrained_model):
@@ -10,38 +53,34 @@ class Word_embedding():
         """
         self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model, binary=True)
         #loading may take a while
-
-    def sentence_to_embedding(self,sentence):
+        
+    def tokenize_normalize_sentence(self,sentence):
         """
-        Extract word embeddings from a sentence
+        tokenize and normalize a sentence
         :arg:
-            sentence: sentence to convert to word embeddings; type: string
+            sentence: sentence to convert to list of normalized words; type: string
         :return:
-            np.array of shape (dim of word embedding,)
+            list of strings
         """
         text_processor = Process_text()
         processed_sentence = nltk.word_tokenize(sentence)
         processed_sentence = text_processor.remove_non_ascii(processed_sentence)
         processed_sentence = text_processor.to_lowercase(processed_sentence)
         processed_sentence = text_processor.remove_punctuation(processed_sentence)
-        #processed_sentence = text_processor.replace_numbers(processed_sentence) #TODO: try
         processed_sentence = text_processor.remove_stopwords(processed_sentence)
-        #processed_sentence = text_processor.stem_words(processed_sentence) #TODO: try this or lemmatize_verbs
-        #processed_sentence = text_processor.lemmatize_verbs(processed_sentence) #TODO: try this or stem_words
-    
-        #now using simple average (TODO: tf-idf version)
-        dim = self.model.vector_size
         
-        return np.mean([self.model[w] for w in sentence if w in self.model] or [np.zeros(dim)], axis=0)
+        return processed_sentence
+    
 
     def dataframe_to_embedding(self,df,attribute_list):
+
         """
         Extract word embeddings from original dataset
         :arg:
             df: pd dataframe of the dataset
             attribute_list: list of attribute names (in string type) relevant for word embeddings
         :return:
-            np.array of shape (# of attributes, # of entities, dim of word embedding)
+            np.array of shape (# of entities, # of attributes, dim of word embedding)
         """
 
         if type(attribute_list[0]) == int:
@@ -53,5 +92,18 @@ class Word_embedding():
             if bool(set(attribute_list) - set(
                     df.columns.values)) == True:  # check if input attributes exist
                 raise ValueError('Attributes provided do not exist.')
-        
-        return np.swapaxes(np.vstack([[np.vstack(df[attribute].apply(str).apply(self.sentence_to_embedding))] for attribute in attribute_list]),0,1)
+
+        #extract relevant columns
+        X_transformed = []
+        for attribute in attribute_list:
+            X = df[attribute].apply(str).apply(self.tokenize_normalize_sentence).tolist()
+            embed = TfidfEmbeddingVectorizer(self.model) #using tf-idf
+            embed.fit(X)
+            X_transformed += [embed.transform(X)]
+
+        return np.swapaxes(np.vstack([X_transformed]),0,1)
+
+
+
+
+

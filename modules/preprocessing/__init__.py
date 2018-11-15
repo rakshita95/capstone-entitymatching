@@ -22,6 +22,7 @@ def divide_columns(df, special_columns=[]):
             return False
 
     t = 0
+
     embeddings = []
     numeric = []
     special = []
@@ -122,8 +123,9 @@ class Preprocessing():
 
         # process numeric columns
         if divide_col['numerical_cols']:
-            df1_numeric = np.array(df1.iloc[:, divide_col['numerical_cols']])
-            df2_numeric = np.array(df2.iloc[:, divide_col['numerical_cols']])
+            df1_numeric = df1.iloc[:, divide_col['numerical_cols']].as_matrix()
+            df2_numeric = df2.iloc[:, divide_col['numerical_cols']].as_matrix()
+
         else:
             df1_numeric = np.array([])
             df2_numeric = np.array([])
