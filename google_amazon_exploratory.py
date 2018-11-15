@@ -29,6 +29,7 @@ we still need to convert currency. right now just ignoring currency effect
 '''
 df2["price"] = df2.price.str.replace(r"[a-zA-Z]",'').astype(float)
 
+
 '''
 id column manipulation
 '''
@@ -60,6 +61,7 @@ spc_matrix_1,spc_matrix_2 = processed_data["special_fields"][0],processed_data["
 '''
 calculate similarities
 '''
+
 num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
 embed_final_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
 spc_final_data = similarities().text_similarity_on_matrix(spc_matrix_1,spc_matrix_2)
@@ -83,7 +85,9 @@ print(x.shape)
 train test split
 '''
 
+
 y = gen_labels(df1_id_col, df2_id_col, match_df, 'idAmazon', 'idGoogleBase')
+
 print(y.shape[0] == x.shape[0])
 
 # generate y labels

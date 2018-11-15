@@ -33,6 +33,19 @@ class Process_text():
                 new_words.append(new_word)
         return new_words
 
+
+    def standard_text_normalization(self,text):
+        """Normalize text
+           :arg: string type
+        """
+        new_text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8', 'ignore')
+        new_text = new_text.lower()
+        new_text = re.sub(r'[^\w\s]', '', new_text)
+        new_text = re.sub('nan','', new_text) #replace 'nan' as empty string
+        
+        return new_text
+
+
 #    def replace_numbers(self,words):
 #        """Replace all interger occurrences in list of tokenized words with textual representation"""
 #        p = inflect.engine()
@@ -45,13 +58,13 @@ class Process_text():
 #                new_words.append(word)
 #        return new_words
 
-#    def remove_stopwords(self,words):
-#        """Remove stop words from list of tokenized words"""
-#        new_words = []
-#        for word in words:
-#            if word not in stopwords.words('english'):
-#                new_words.append(word)
-#        return new_words
+    def remove_stopwords(self,words):
+        """Remove stop words from list of tokenized words"""
+        new_words = []
+        for word in words:
+            if word not in stopwords.words('english'):
+                new_words.append(word)
+        return new_words
 
 #    def stem_words(self,words):
 #        """Stem words in list of tokenized words"""
