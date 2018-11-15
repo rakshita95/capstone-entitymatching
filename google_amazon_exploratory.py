@@ -51,7 +51,7 @@ match_id2 = 'idDBLP' # corresponds to df2_id
 custom data cleaning, currently this section is for google dataset only
 we still need to convert currency. right now just ignoring currency effect
 '''
-#df2["price"] = df2.price.str.replace(r"[a-zA-Z]",'').astype(float)
+df2["price"] = df2.price.str.replace(r"[a-zA-Z]",'').astype(float)
 
 #***********************************************************************************
 
@@ -69,18 +69,18 @@ df2 = df2.drop(columns = [df2_id])
 '''
 preprocess both dataframes
 '''
-processed_data = Preprocessing().overall_preprocess(df1.drop('id',axis=1), df2.drop('id',axis=1)) # may take a while bc loading pretrained word embedding model
+processed_data = Preprocessing().overall_preprocess(df1, df2) # may take a while bc loading pretrained word embedding model
 
 '''
-get numerical data
+get data
 '''
 
 # num_matrix_1, num_matrix_2 = processed_data["numerical"][0], processed_data["numerical"][1]
-embed_matrix_1, embed_matrix_2 = processed_data["word_embedding_fields"][0], processed_data["word_embedding_fields"][1]
+# embed_matrix_1, embed_matrix_2 = processed_data["word_embedding_fields"][0], processed_data["word_embedding_fields"][1]
 
-# num_matrix_1,num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
-# embed_matrix_1,embed_matrix_2 = processed_data["word_embedding_fields"][0],processed_data["word_embedding_fields"][1]
-# spc_matrix_1,spc_matrix_2 = processed_data["special_fields"][0],processed_data["special_fields"][1]
+num_matrix_1,num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
+embed_matrix_1,embed_matrix_2 = processed_data["word_embedding_fields"][0],processed_data["word_embedding_fields"][1]
+spc_matrix_1,spc_matrix_2 = processed_data["special_fields"][0],processed_data["special_fields"][1]
 
 
 '''
@@ -88,11 +88,11 @@ calculate similarities
 '''
 
 # num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1, num_matrix_2)
-embed_final_data = similarities().vector_similarity_on_matrix(embed_matrix_1, embed_matrix_2)
+# embed_final_data = similarities().vector_similarity_on_matrix(embed_matrix_1, embed_matrix_2)
 
-# num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
-# embed_final_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
-# spc_final_data = similarities().text_similarity_on_matrix(spc_matrix_1,spc_matrix_2)
+num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
+embed_final_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
+spc_final_data = similarities().text_similarity_on_matrix(spc_matrix_1,spc_matrix_2)
 
 
 '''
@@ -112,6 +112,9 @@ print(x.shape)
 '''
 train test split
 '''
+
+df1 = pd.read_csv("data/amazon_google/sample/amazon_sample.csv")
+df2 = pd.read_csv("data/amazon_google/sample/google_sample.csv")
 
 y = gen_labels(df1['id'], df2['id'], match_df, 'idAmazon', 'idGoogleBase')
 x = embed_final_data
@@ -188,7 +191,7 @@ fpr_rf, tpr_rf, _ = roc_curve(y_test, y_pred_prob_rf)
 print("\tPrecision: %1.3f" % precision_score(y_test, y_pred_rf))
 print("\tRecall: %1.3f" % recall_score(y_test, y_pred_rf))
 print("\tF1: %1.3f\n" % f1_score(y_test, y_pred_rf))
-print("\tAccuracy: %1.3f\n" % sum(y_pred_rf==y_test)/len(y_test))
+print("\tAccuracy: %1.3f\n" % (sum(y_pred_rf==y_test)/len(y_test)))
 
 plt.figure(1)
 plt.plot([0, 1], [0, 1], 'k--')
