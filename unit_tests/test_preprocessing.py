@@ -29,14 +29,15 @@ def test_remove_punctuation():
 '''
 def test_sentence_to_embedding():
     sentence = "6Â$%GSq 918Â 417fdfÂ 712dfaÅbäcödf() *&^%$#&@!~-`+[]:\"\'/?><.,\|abc"
-    assert(Word_embedding('/Users/shihhuayu/capstone/GoogleNews-vectors-negative300.bin').sentence_to_embedding(sentence).shape == (300,))
+    assert(Word_embedding('/Users/shihhuayu/capstone/capstone-entitymatching/data/embeddings/GoogleNews-vectors-negative300.bin').sentence_to_embedding(sentence).shape == (300,)) #does not work in new version (word embedding with fit/transform) bc sentence_to_embedding was removed
 
 def test_dataframe_to_embedding():
     df = pd.read_csv('/Users/shihhuayu/capstone/companies_data_neoway_subsample/input.csv')
     with pytest.raises(ValueError):
-        Word_embedding('/Users/shihhuayu/capstone/GoogleNews-vectors-negative300.bin').dataframe_to_embedding(df,["name","addressStreet","addressCity","wrong_attribute"])
-    assert(Word_embedding('/Users/shihhuayu/capstone/GoogleNews-vectors-negative300.bin').dataframe_to_embedding(df,["name","addressStreet","addressCity","addressState"]).shape == (189, 4, 300))
+        Word_embedding('/Users/shihhuayu/capstone/capstone-entitymatching/data/embeddings/GoogleNews-vectors-negative300.bin').dataframe_to_embedding(df,["name","addressStreet","addressCity","wrong_attribute"])
+    assert(Word_embedding('/Users/shihhuayu/capstone/capstone-entitymatching/data/embeddings/GoogleNews-vectors-negative300.bin').dataframe_to_embedding(df,["name","addressStreet","addressCity","addressState"]).shape == (189, 4, 300)) #works in new version (word embedding with fit/transform)
 '''
+
 
     
 #test functions from Preprocessing
