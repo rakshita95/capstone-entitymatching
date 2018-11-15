@@ -74,12 +74,12 @@ class Preprocessing():
         :param df1: pd.df
         :param df2: pd.df
         :param special_columns: a list of special columns values
-        :param phone_number:
-        :param address_columns:
-        :param geocode_address:
-        :param api_key:
-        :param path:
-        :return:
+        :param phone_number: a list of the name of the phone number column
+        :param address_columns: a list of the names of the address columns
+        :param geocode_address: bol | indicates whether geocoding should be applied
+        :param api_key: str | if geocode_address is true, you must provide a valid Google API key
+        :param path: str | path to the embedding dictionary
+        :return: dict | a dictionary of np.arrays with the three values
         """
 
         s = set(special_columns)
@@ -103,7 +103,7 @@ class Preprocessing():
         print('\n','**** df2 divide columns ****')
         [print(i, ': ', df2.columns[j].values) for i, j in divide_col.items()]
 
-        divide_col['word_embedding_cols'] = []
+
         #process word embeddings
 
         if divide_col["word_embedding_cols"]: #process only if both col lists are not empty
