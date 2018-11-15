@@ -6,8 +6,8 @@ Nov 5 2018
 import itertools
 
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 from jellyfish import levenshtein_distance
+import scipy.spatial as sp
 
 class similarities():
 
@@ -52,7 +52,8 @@ class similarities():
         :return: a 2-D array of similarities for all numerical records
         of allpossible combination of samples
         """
-        if not(matrix_1) or not(matrix_2):
+        #if not(matrix_1) or not(matrix_2):
+        if not (matrix_1.size) or not (matrix_2.size):
             print("empty matrix - could not calculate similarity")
             return np.array([])
 
@@ -68,28 +69,32 @@ class similarities():
             out = similarities().__gen_cross_product(matrix_1, matrix_2, min_max)
         return out
 
-
-    def vector_similarity_on_matrix(self,matrix_1,matrix_2,method = "cosine"):
+    def vector_similarity_on_matrix(self, matrix_1, matrix_2, method = "cosine"):
         '''
         calculates text similarities given word embeddings fields
 
-        :param matrix_1,matrix_2:
+        :param matrix_1, matrix_2:
         both matrices should have the same shape[1] - number of fields
         both matrices should have the same shape[2] - embedding size
         with potentially different shape[0] - number of samples
         Order of fields should also be aligned
         :return:
         '''
-        if matrix_1.size != 0 and matrix_2.size != 0: #if both are not empty matrices
-            def cosine(a,b):
-                tmp = np.round(cosine_similarity(a,b),3)
-                return np.diag(tmp)
-            if method == "cosine":
-                out = similarities().__gen_cross_product(matrix_1,matrix_2,cosine,embedding = True)
+        if matrix_1.size != 0 and matrix_2.size != 0:  # if both are not empty matrices
+            n_cols = matrix_1.shape[1]
+            out = np.zeros(
+                (matrix_1.shape[0] * matrix_2.shape[0], n_cols))
+            for col in range(n_cols):
+                if method == 'cosine':
+                    sim = 1 - sp.distance.cdist(matrix_1[:, col, :],
+                                                matrix_2[:, col, :],
+                                                'cosine')
+                out[:, col] = sim.flatten('C')
             return out
-        
-        else: #else return empty array
+
+        else:  # else return empty array
             return np.array([])
+
 
     def text_similarity_on_matrix(self,matrix_1,matrix_2, method = "lavenshtein"):
         """
@@ -102,7 +107,7 @@ class similarities():
         :return: a 2-D array of similarities for all special text records
         of all possible combination of samples
         """
-        if not(matrix_1) or not(matrix_2):
+        if not(matrix_1.size) or not(matrix_2.size):
             print("empty matrix - could not calculate similarity")
             return np.array([])
         def lavenshtein(a,b):
@@ -122,7 +127,7 @@ class similarities():
         :param matrix2: matrix that is supposed to be matches
         :return: feature matrix for the machine learning model
         """
-        if not(matrix1) or not(matrix2):
+        if not(matrix1.size) or not(matrix2.size):
             print("empty matrix - could not calculate similarity")
             return np.array([])
 

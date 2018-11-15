@@ -3,6 +3,7 @@ import sys
 from .word_embedding import Word_embedding
 from .process_text import Process_text
 from .preprocess_special_columns import *
+from .process_text import Process_text
 #sys.path.append('..')
 
 def divide_columns(df, special_columns=[]):
@@ -12,6 +13,15 @@ def divide_columns(df, special_columns=[]):
     :param special_columns:
     :return:
     """
+
+    def is_number(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+    t = 0
 
     embeddings = []
     numeric = []
@@ -27,13 +37,16 @@ def divide_columns(df, special_columns=[]):
     else:
         special = []
 
-    p = 0
+    t = 0
+
     for i in df.loc[0].tolist():
         if type(i) == str:
             embeddings.append(t)
-        elif type(i) in [int, float, np.int64, np.float32]:
+        #elif type(i) in [int, float, np.int64, np.float32]:
+        elif is_number(i):
             numeric.append(t)
-        p += 1
+        t += 1
+
     return numeric, special, embeddings
 
 
@@ -45,12 +58,13 @@ class Preprocessing():
     def process_phone_num(self):
         pass
 
-
     def overall_preprocess(self,df1,df2,
                            special_columns=None,
                            phone_number=None,
-                           path = '/Users/shihhuayu/capstone/GoogleNews-vectors-negative300.bin'):
+                           path='data/embeddings/GoogleNews-vectors-negative300.bin'):
+
         """
+
         This function divides the given raw data into three preprocessed sub-dataset (or numpy matrices):
         - numerical matrix
         - special treatment columns
@@ -68,13 +82,19 @@ class Preprocessing():
                       "word_embedding_cols":[]}
 
 
-        n, s, w = divide_columns(df1, special_columns)
+        n, s, w = divide_columns(df1, ["title","manufacturer"]) #hard code special cols in for now
         divide_col['numerical_cols'] = n
         divide_col['special_field_cols'] = s
         divide_col['word_embedding_cols'] = w
 
+        print('**** df1 divide columns ****')
+        [print(i, ': ', df1.columns[j].values) for i, j in divide_col.items()]
+
+        print('\n','**** df2 divide columns ****')
+        [print(i, ': ', df2.columns[j].values) for i, j in divide_col.items()]
 
         #process word embeddings
+
         if divide_col["word_embedding_cols"]: #process only if both col lists are not empty
             embed = Word_embedding(path) #initialization may take a while
             df1_embed = embed.dataframe_to_embedding(df1,divide_col["word_embedding_cols"])
@@ -82,15 +102,21 @@ class Preprocessing():
         else:
             df1_embed = np.array([])
             df2_embed = np.array([])
-
+ 
         # process special columns
         if divide_col['special_field_cols']:
+            """
             df1_special = preprocess_special_fields(df1.iloc[:,
                                                     divide_col['special_field_cols']],
                                                     phone_number)
             df2_special = preprocess_special_fields(df2.iloc[:,
                                                     divide_col['special_field_cols']],
                                                     phone_number)
+            """
+            text_processor = Process_text()
+            df1_special = np.hstack([df1.iloc[:,col].apply(str).apply(text_processor.standard_text_normalization).values.reshape(len(df1),1) for col in divide_col['special_field_cols']])
+            df2_special = np.hstack([df2.iloc[:,col].apply(str).apply(text_processor.standard_text_normalization).values.reshape(len(df2),1) for col in divide_col['special_field_cols']])
+            
         else:
             df1_special = np.array([])
             df2_special = np.array([])
@@ -99,6 +125,7 @@ class Preprocessing():
         if divide_col['numerical_cols']:
             df1_numeric = df1.iloc[:, divide_col['numerical_cols']].as_matrix()
             df2_numeric = df2.iloc[:, divide_col['numerical_cols']].as_matrix()
+
         else:
             df1_numeric = np.array([])
             df2_numeric = np.array([])
