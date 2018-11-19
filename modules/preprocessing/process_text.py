@@ -32,7 +32,14 @@ class Process_text():
             if new_word != '':
                 new_words.append(new_word)
         return new_words
-
+    
+    def remove_nan(self,words):
+        """remove nan from list of tokenized words"""
+        new_words = []
+        for word in words:
+            if word != 'nan':
+                new_words.append(word)
+        return new_words
 
     def standard_text_normalization(self,text):
         """Normalize text

@@ -65,6 +65,7 @@ class Preprocessing():
                            geocode_address=False,
                            api_key=None,
                            path='data/embeddings/GoogleNews-vectors-negative300.bin'):
+                           #path='data/embeddings/cc.en.300.bin'):
 
         """
         This function divides the given raw data into three preprocessed sub-dataset (or numpy matrices):

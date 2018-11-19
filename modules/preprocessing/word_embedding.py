@@ -53,6 +53,7 @@ class Word_embedding():
         """
         self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model, binary=True)
         #loading may take a while
+        #self.model = gensim.models.FastText.load_fasttext_format(path_to_pretrained_model)
         
     def tokenize_normalize_sentence(self,sentence):
         """
@@ -67,6 +68,7 @@ class Word_embedding():
         processed_sentence = text_processor.remove_non_ascii(processed_sentence)
         processed_sentence = text_processor.to_lowercase(processed_sentence)
         processed_sentence = text_processor.remove_punctuation(processed_sentence)
+        processed_sentence = text_processor.remove_nan(processed_sentence)
         processed_sentence = text_processor.remove_stopwords(processed_sentence)
         
         return processed_sentence
