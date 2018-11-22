@@ -47,13 +47,17 @@ class TfidfEmbeddingVectorizer():
 
 
 class Word_embedding():
-    def __init__(self,path_to_pretrained_model):
+    def __init__(self,word_embedding_model,path_to_pretrained_model):
         """
         Initialize model variable; type: gensim.models.keyedvectors.Word2VecKeyedVectors
         """
-        self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model, binary=True)
         #loading may take a while
-        #self.model = gensim.models.FastText.load_fasttext_format(path_to_pretrained_model)
+        if word_embedding_model == "word2vec":
+            self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model, binary=True)
+        elif word_embedding_model == "fasttext":
+            self.model = gensim.models.FastText.load_fasttext_format(path_to_pretrained_model)
+        elif word_embedding_model == "glove":
+            self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model)
         
     def tokenize_normalize_sentence(self,sentence):
         """
