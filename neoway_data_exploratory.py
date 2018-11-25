@@ -52,7 +52,9 @@ df2 = df2.drop(columns = [df2_id])
 '''
 preprocess both dataframes
 '''
-processed_data = Preprocessing().overall_preprocess(df1, df2) # may take a while bc loading pretrained word embedding model
+processed_data = Preprocessing().overall_preprocess(df1, df2,
+                                                    special_columns=['name','addressStreet'],
+                                                    embedding_weight='tfidf')# may take a while bc loading pretrained word embedding model
 
 '''
 get numerical data
@@ -66,7 +68,10 @@ spc_matrix_1, spc_matrix_2 = processed_data["special_fields"][0],processed_data[
 calculate similarities
 '''
 num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
-embed_final_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
+embed_tfidf_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
+#embed_mean_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
+#embed_min_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
+#embed_max_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
 spc_final_data = similarities().text_similarity_on_matrix(spc_matrix_1,spc_matrix_2)
 
 
@@ -76,7 +81,7 @@ concatenate all data
 # only concatenate non-empty similarity matrices
 non_empty = []
 
-for m in num_final_data, embed_final_data, spc_final_data:
+for m in num_final_data, spc_final_data, embed_min_data, embed_max_data:#, embed_mean_data,embed_tfidf_data#:
     if m.size !=0:
         non_empty.append(m)
 
@@ -96,7 +101,7 @@ print(y.shape[0] == x.shape[0])
 print(y.sum() == match_df.shape[0])
 
 
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.33, stratify = y, random_state=42))
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.33, stratify = y, random_state=42)
 
 '''
 modeling
@@ -104,8 +109,14 @@ modeling
 from sklearn.utils import resample
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_curve,  precision_score, recall_score, f1_score
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from sklearn.model_selection import RandomizedSearchCV
+
+col_means = np.nanmean(x_train,axis=0)
+inds_train  = np.where(np.isnan(x_train))
+inds_test = np.where(np.isnan(x_test))
+x_train[inds_train]=np.take(col_means, inds_train[1])
+x_test[inds_test]=np.take(col_means, inds_test[1])
 
 # #upsample
 # x_maj = x_train[y_train==0]

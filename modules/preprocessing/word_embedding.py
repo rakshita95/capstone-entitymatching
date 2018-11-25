@@ -21,6 +21,34 @@ class MeanEmbeddingVectorizer():
         return np.array([np.mean([self.word2vec[w] for w in words if w in self.word2vec]
                     or [np.zeros(self.dim)], axis=0) for words in X])
 
+class MinEmbeddingVectorizer():
+    def __init__(self, word2vec):
+        self.word2vec = word2vec
+        # if a text is empty we should return a vector of zeros
+        # with the same dimensionality as all the other vectors
+        self.dim = word2vec.vector_size
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return np.array([np.nanmin([self.word2vec[w] for w in words if w in self.word2vec]
+                    or [np.zeros(self.dim)], axis=0) for words in X])
+
+class MaxEmbeddingVectorizer():
+    def __init__(self, word2vec):
+        self.word2vec = word2vec
+        # if a text is empty we should return a vector of zeros
+        # with the same dimensionality as all the other vectors
+        self.dim = word2vec.vector_size
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return np.array([np.nanmax([self.word2vec[w] for w in words if w in self.word2vec]
+                                or [np.zeros(self.dim)], axis=0) for words in X])
+
 
 class TfidfEmbeddingVectorizer():
     def __init__(self, word2vec):
@@ -78,7 +106,7 @@ class Word_embedding():
         return processed_sentence
     
 
-    def dataframe_to_embedding(self,df,attribute_list):
+    def dataframe_to_embedding(self,df,attribute_list, weight = 'tfidf'):
 
         """
         Extract word embeddings from original dataset
@@ -103,7 +131,15 @@ class Word_embedding():
         X_transformed = []
         for attribute in attribute_list:
             X = df[attribute].apply(str).apply(self.tokenize_normalize_sentence).tolist()
-            embed = TfidfEmbeddingVectorizer(self.model) #using tf-idf
+            if weight == 'tfidf':
+                embed = TfidfEmbeddingVectorizer(self.model) #using tf-idf
+            elif weight == 'mean':
+                embed = MeanEmbeddingVectorizer(self.model)
+            elif weight == 'min':
+                embed = MinEmbeddingVectorizer(self.model)
+            elif weight == 'max':
+                embed = MaxEmbeddingVectorizer(self.model)
+
             embed.fit(X)
             X_transformed += [embed.transform(X)]
 

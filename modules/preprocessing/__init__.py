@@ -65,7 +65,8 @@ class Preprocessing():
                            geocode_address=False,
                            api_key=None,
                            word_embedding_model="word2vec",
-                           word_embedding_path=None):
+                           word_embedding_path=None,
+                           embedding_weight = 'tfidf'):
                            #word_embedding_path='data/embeddings/cc.en.300.bin'):
 
         """
@@ -92,7 +93,6 @@ class Preprocessing():
         divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
                       "word_embedding_cols":[]}
-
 
         n, s, w = divide_columns(df1, special_columns)
         divide_col['numerical_cols'] = n
@@ -123,8 +123,8 @@ class Preprocessing():
                 #has to be in non-binary readable by gensim.models.KeyedVectors.load_word2vec_format
                 
             embed = Word_embedding(word_embedding_model,word_embedding_path) #initialization may take a while
-            df1_embed = embed.dataframe_to_embedding(df1,divide_col["word_embedding_cols"])
-            df2_embed = embed.dataframe_to_embedding(df2,divide_col["word_embedding_cols"])
+            df1_embed = embed.dataframe_to_embedding(df1,divide_col["word_embedding_cols"], weight = embedding_weight)
+            df2_embed = embed.dataframe_to_embedding(df2,divide_col["word_embedding_cols"], weight = embedding_weight)
             
         else:
             df1_embed = np.array([])

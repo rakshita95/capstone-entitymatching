@@ -44,14 +44,13 @@ df2 = df2.drop(columns = [df2_id])
 '''
 preprocess both dataframes
 '''
-processed_data = Preprocessing().overall_preprocess(df1, df2) # may take a while bc loading pretrained word embedding model
+processed_data = Preprocessing().overall_preprocess(df1, df2,
+                                                    special_columns=['title','manufacturer'],
+                                                    embedding_weight='tfidf') # may take a while bc loading pretrained word embedding model
 
 '''
 get data
 '''
-
-# num_matrix_1, num_matrix_2 = processed_data["numerical"][0], processed_data["numerical"][1]
-# embed_matrix_1, embed_matrix_2 = processed_data["word_embedding_fields"][0], processed_data["word_embedding_fields"][1]
 
 num_matrix_1,num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
 embed_matrix_1,embed_matrix_2 = processed_data["word_embedding_fields"][0],processed_data["word_embedding_fields"][1]
@@ -63,7 +62,10 @@ calculate similarities
 '''
 
 num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
-embed_final_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
+embed_tfidf_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
+#embed_mean_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
+#embed_min_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
+#embed_max_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
 spc_final_data = similarities().text_similarity_on_matrix(spc_matrix_1,spc_matrix_2)
 
 
@@ -73,7 +75,7 @@ concatenate all data
 # only concatenate non-empty similarity matrices
 non_empty = []
 
-for m in num_final_data, embed_final_data, spc_final_data:
+for m in num_final_data, spc_final_data, embed_tfidf_data:#, embed_mean_data, embed_max_data, embed_min_data:
     if m.size !=0:
         non_empty.append(m)
 
