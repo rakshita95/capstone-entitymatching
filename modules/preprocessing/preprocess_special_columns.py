@@ -74,6 +74,10 @@ def preprocess_special_fields(df,
     longitude columns
     """
 
+    # convert all columns to strings
+    for a in df.columns:
+        df[a] = df[a].astype(str)
+
     text_processor = Process_text()
     df = df.astype(str).applymap(text_processor.standard_text_normalization)
 
@@ -83,6 +87,7 @@ def preprocess_special_fields(df,
     #TODO: add e-mail preprocessing.
 
     if address_columns and geocode_address:
+        df = df.fillna('NaN')
         df[['GoogleAddress', 'latitude', 'longitude']] = df[
             address_columns].apply(
             lambda x: pd.Series(geocode_address_api(x, api_key)), axis=1)

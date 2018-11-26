@@ -91,7 +91,6 @@ class Preprocessing():
                       "special_field_cols":[],
                       "word_embedding_cols":[]}
 
-
         n, s, w = divide_columns(df1, special_columns)
         divide_col['numerical_cols'] = n
         divide_col['special_field_cols'] = s
@@ -156,4 +155,5 @@ class Preprocessing():
                           "special_fields":[df1_special, df2_special],
                           "word_embedding_fields":[df1_embed, df2_embed]
                           }
+
         return processed_data
