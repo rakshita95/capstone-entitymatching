@@ -21,6 +21,34 @@ class MeanEmbeddingVectorizer():
         return np.array([np.mean([self.word2vec[w] for w in words if w in self.word2vec]
                     or [np.zeros(self.dim)], axis=0) for words in X])
 
+class MinEmbeddingVectorizer():
+    def __init__(self, word2vec):
+        self.word2vec = word2vec
+        # if a text is empty we should return a vector of zeros
+        # with the same dimensionality as all the other vectors
+        self.dim = word2vec.vector_size
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return np.array([np.nanmin([self.word2vec[w] for w in words if w in self.word2vec]
+                    or [np.zeros(self.dim)], axis=0) for words in X])
+
+class MaxEmbeddingVectorizer():
+    def __init__(self, word2vec):
+        self.word2vec = word2vec
+        # if a text is empty we should return a vector of zeros
+        # with the same dimensionality as all the other vectors
+        self.dim = word2vec.vector_size
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return np.array([np.nanmax([self.word2vec[w] for w in words if w in self.word2vec]
+                                or [np.zeros(self.dim)], axis=0) for words in X])
+
 
 class TfidfEmbeddingVectorizer():
     def __init__(self, word2vec):
@@ -47,12 +75,17 @@ class TfidfEmbeddingVectorizer():
 
 
 class Word_embedding():
-    def __init__(self,path_to_pretrained_model):
+    def __init__(self,word_embedding_model,path_to_pretrained_model):
         """
         Initialize model variable; type: gensim.models.keyedvectors.Word2VecKeyedVectors
         """
-        self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model, binary=True)
         #loading may take a while
+        if word_embedding_model == "word2vec":
+            self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model, binary=True)
+        elif word_embedding_model == "fasttext":
+            self.model = gensim.models.FastText.load_fasttext_format(path_to_pretrained_model)
+        elif word_embedding_model == "glove":
+            self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model)
         
     def tokenize_normalize_sentence(self,sentence):
         """
@@ -67,12 +100,13 @@ class Word_embedding():
         processed_sentence = text_processor.remove_non_ascii(processed_sentence)
         processed_sentence = text_processor.to_lowercase(processed_sentence)
         processed_sentence = text_processor.remove_punctuation(processed_sentence)
+        processed_sentence = text_processor.remove_nan(processed_sentence)
         processed_sentence = text_processor.remove_stopwords(processed_sentence)
         
         return processed_sentence
     
 
-    def dataframe_to_embedding(self,df,attribute_list):
+    def dataframe_to_embedding(self,df,attribute_list, weight = 'tfidf'):
 
         """
         Extract word embeddings from original dataset
@@ -97,7 +131,15 @@ class Word_embedding():
         X_transformed = []
         for attribute in attribute_list:
             X = df[attribute].apply(str).apply(self.tokenize_normalize_sentence).tolist()
-            embed = TfidfEmbeddingVectorizer(self.model) #using tf-idf
+            if weight == 'tfidf':
+                embed = TfidfEmbeddingVectorizer(self.model) #using tf-idf
+            elif weight == 'mean':
+                embed = MeanEmbeddingVectorizer(self.model)
+            elif weight == 'min':
+                embed = MinEmbeddingVectorizer(self.model)
+            elif weight == 'max':
+                embed = MaxEmbeddingVectorizer(self.model)
+
             embed.fit(X)
             X_transformed += [embed.transform(X)]
 

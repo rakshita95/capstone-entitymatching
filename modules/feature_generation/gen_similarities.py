@@ -6,7 +6,7 @@ Nov 5 2018
 import itertools
 
 import numpy as np
-from jellyfish import levenshtein_distance
+from jellyfish import levenshtein_distance, jaro_winkler
 import scipy.spatial as sp
 
 class similarities():
@@ -113,10 +113,17 @@ class similarities():
         def lavenshtein(a,b):
             tmp = [levenshtein_distance(x, y) for i, x in enumerate(a) for j, y in enumerate(b) if i == j]
             return np.asarray(tmp)
+        def jaro(a,b):
+            tmp = [jaro_winkler(x, y) for i, x in enumerate(a) for j, y in enumerate(b) if i == j]
+            return np.asarray(tmp)
         if method == "lavenshtein":
             out = similarities().__gen_cross_product(matrix_1,matrix_2,lavenshtein)
+        if method == "jaro_winkler":
+            out = similarities().__gen_cross_product(matrix_1, matrix_2, jaro)
         return out
 
+
+    # This function is currently not in use
     def generate_similarity(self, matrix1, matrix2):
         """
         This function takes in the preprocessed matrices and calcualtes the

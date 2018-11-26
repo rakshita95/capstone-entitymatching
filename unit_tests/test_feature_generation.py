@@ -43,3 +43,18 @@ def test_text_similarity_on_matrix():
                         [ 5.,  7.],
                         [ 0.,  6.]])
     assert (np.array_equal(tmp, desired))
+
+def test_text_similarity_jaro_on_matrix():
+    matrix_1 = np.array([["hello", "columbia university"],
+                         ["bye", "nyu"]])
+    matrix_2 = np.array([["helli", "columbia"],
+                         ["bye", "new york"]])
+
+    tmp = similarities().text_similarity_on_matrix(matrix_1, matrix_2, method="jaro_winkler")
+    desired = np.array([[0.92, 0.88421053],
+                        [0.51111111, 0.3998538],
+                        [0.51111111, 0.48611111],
+                        [1., 0.63888889]])
+    assert (np.array_equal(tmp, desired))
+
+
