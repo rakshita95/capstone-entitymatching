@@ -8,6 +8,8 @@ import itertools
 import numpy as np
 from jellyfish import levenshtein_distance, jaro_winkler
 import scipy.spatial as sp
+from ..preprocessing.process_text import Process_text
+from sklearn.metrics import jaccard_similarity_score
 
 class similarities():
 
@@ -107,6 +109,7 @@ class similarities():
         :return: a 2-D array of similarities for all special text records
         of all possible combination of samples
         """
+        p = Process_text()
         if not(matrix_1.size) or not(matrix_2.size):
             print("empty matrix - could not calculate similarity")
             return np.array([])
@@ -116,10 +119,26 @@ class similarities():
         def jaro(a,b):
             tmp = [jaro_winkler(x, y) for i, x in enumerate(a) for j, y in enumerate(b) if i == j]
             return np.asarray(tmp)
+        def jaccard_string(str1, str2):
+            str1 = p.standard_text_normalization(str1)
+            a = set(str1.split())
+            str2 = p.standard_text_normalization(str2)
+            b = set(str2.split())
+            c = a.intersection(b)
+            if len(a)!=0 and len(b)!=0:
+                return float(len(c)) / (len(a) + len(b) - len(c))
+            else:
+                return 0 #if both a and b are empty, make sim = 0 instead of 1 used in literature
+        def jaccard(a,b):
+            tmp = [jaccard_string(x,y) for i, x in enumerate(a) for j, y in enumerate(b) if i == j]
+            return np.asarray(tmp)
         if method == "lavenshtein":
             out = similarities().__gen_cross_product(matrix_1,matrix_2,lavenshtein)
-        if method == "jaro_winkler":
+        elif method == "jaro_winkler":
             out = similarities().__gen_cross_product(matrix_1, matrix_2, jaro)
+        elif method == "jaccard":
+            out = similarities().__gen_cross_product(matrix_1,matrix_2,jaccard)
+        
         return out
 
 
