@@ -86,24 +86,6 @@ class Word_embedding():
             self.model = gensim.models.FastText.load_fasttext_format(path_to_pretrained_model)
         elif word_embedding_model == "glove":
             self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model)
-        
-    def tokenize_normalize_sentence(self,sentence):
-        """
-        tokenize and normalize a sentence
-        :arg:
-            sentence: sentence to convert to list of normalized words; type: string
-        :return:
-            list of strings
-        """
-        text_processor = Process_text()
-        processed_sentence = nltk.word_tokenize(sentence)
-        processed_sentence = text_processor.remove_non_ascii(processed_sentence)
-        processed_sentence = text_processor.to_lowercase(processed_sentence)
-        processed_sentence = text_processor.remove_punctuation(processed_sentence)
-        processed_sentence = text_processor.remove_nan(processed_sentence)
-        processed_sentence = text_processor.remove_stopwords(processed_sentence)
-        
-        return processed_sentence
     
 
     def dataframe_to_embedding(self,df,attribute_list, weight = 'tfidf'):
@@ -130,7 +112,7 @@ class Word_embedding():
         #extract relevant columns
         X_transformed = []
         for attribute in attribute_list:
-            X = df[attribute].apply(str).apply(self.tokenize_normalize_sentence).tolist()
+            X = df[attribute].apply(str).apply(tokenize_normalize_sentence).tolist()
             if weight == 'tfidf':
                 embed = TfidfEmbeddingVectorizer(self.model) #using tf-idf
             elif weight == 'mean':
@@ -144,6 +126,77 @@ class Word_embedding():
             X_transformed += [embed.transform(X)]
 
         return np.swapaxes(np.vstack([X_transformed]),0,1)
+
+
+
+class Word_embedding_new():
+    def __init__(self,word_embedding_model,path_to_pretrained_model):
+        """
+        Initialize model variable; type: gensim.models.keyedvectors.Word2VecKeyedVectors
+        """
+        #loading may take a while
+        if word_embedding_model == "word2vec":
+            self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model, binary=True)
+        elif word_embedding_model == "fasttext":
+            self.model = gensim.models.FastText.load_fasttext_format(path_to_pretrained_model)
+        elif word_embedding_model == "glove":
+            self.model = gensim.models.KeyedVectors.load_word2vec_format(path_to_pretrained_model)
+
+    
+    def fit_embedding(self,df,attribute_list,weight = 'tfidf'):
+    
+        if type(attribute_list[0]) == int:
+            new = []
+            for i in attribute_list:
+                new.append(list(df.columns)[i])
+            attribute_list = new
+    
+        else:
+            if bool(set(attribute_list) - set(
+                    df.columns.values)) == True:  # check if input attributes exist
+                raise ValueError('Attributes provided do not exist.')
+
+        embed = [] #save embeddings into a list
+        for attribute in attribute_list:
+            X = df[attribute].apply(str).apply(tokenize_normalize_sentence).tolist()
+            if weight == 'tfidf':
+                ev = TfidfEmbeddingVectorizer(self.model) #using tf-idf
+            elif weight == 'mean':
+                ev = MeanEmbeddingVectorizer(self.model)
+            elif weight == 'min':
+                ev = MinEmbeddingVectorizer(self.model)
+            elif weight == 'max':
+                ev = MaxEmbeddingVectorizer(self.model)
+            
+            embed += [ev.fit(X)]
+        return embed, attribute_list
+
+
+def df_to_embedding(embed_attribute_list,row):
+    
+    embed_list = embed_attribute_list[0]
+    attr_list = embed_attribute_list[1]
+    
+    row_transformed = []
+    for i in range(len(embed_list)):
+        normalized_sentence = row[attr_list[i]].apply(str).apply(tokenize_normalize_sentence).tolist()
+        row_transformed += [embed_list[i].transform(normalized_sentence)]
+
+    return np.swapaxes(np.vstack([row_transformed]),0,1)
+
+
+def tokenize_normalize_sentence(sentence):
+    """
+    tokenize and normalize a sentence
+    :arg:
+        sentence: sentence to convert to list of normalized words; type: string
+    :return:
+        list of strings
+    """
+    processed_sentence = Process_text().standard_text_normalization(sentence)
+    processed_sentence = nltk.word_tokenize(processed_sentence)
+
+    return processed_sentence
 
 
 

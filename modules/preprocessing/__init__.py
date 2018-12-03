@@ -1,6 +1,8 @@
 import numpy as np
 import sys
 from .word_embedding import Word_embedding
+from .word_embedding import Word_embedding_new
+from .word_embedding import df_to_embedding
 from .process_text import Process_text
 from .preprocess_special_columns import *
 from .process_text import Process_text
@@ -162,6 +164,277 @@ class Preprocessing():
         if divide_col['numerical_cols']:
             df1_numeric = df1.iloc[:, divide_col['numerical_cols']].as_matrix()
             df2_numeric = df2.iloc[:, divide_col['numerical_cols']].as_matrix()
+
+        else:
+            df1_numeric = np.array([])
+            df2_numeric = np.array([])
+
+        ## after finishing preprocessing
+        processed_data = {"numerical":[df1_numeric, df2_numeric],
+                          "special_fields":[df1_special, df2_special],
+                          "word_embedding_fields":[df1_embed, df2_embed]
+                          }
+        return processed_data
+
+
+def load_word_embedding_model(word_embedding_model="word2vec",word_embedding_path=None):
+
+    if word_embedding_model not in ["word2vec","fasttext","glove"]:
+        raise ValueError('Invalid model name.')
+    
+    elif word_embedding_model == "word2vec" and word_embedding_path == None:
+        word_embedding_path = 'data/embeddings/GoogleNews-vectors-negative300.bin'
+    
+    elif word_embedding_model == "fasttext" and word_embedding_path == None:
+        word_embedding_path = 'data/embeddings/cc.en.300.bin'
+    
+    elif word_embedding_model == "glove" and word_embedding_path == None:
+        word_embedding_path = 'data/embeddings/glove.42B.300d_word2vec.txt'
+        #has to be in non-binary readable by gensim.models.KeyedVectors.load_word2vec_format
+    
+    return Word_embedding_new(word_embedding_model,word_embedding_path) #initialization may take a while
+
+
+class Preprocessor():
+    def __init__(self,word_embedding_model_instance=None,
+                 special_columns=[],
+                 phone_number=[],
+                 address_columns=[],
+                 geocode_address=False,
+                 api_key=None,
+                 embedding_weight='tfidf'):
+        
+        self.phone_number=phone_number
+        self.address_columns=address_columns
+        self.geocode_address=geocode_address
+        self.api_key=api_key
+        s = set(special_columns)
+        s.update(address_columns)
+        s.update(phone_number)
+        self.special_columns = list(s)
+
+        self.divide_col = {"numerical_cols": [],
+                      "special_field_cols":[],
+                      "word_embedding_cols":[]}
+        
+        
+        self.word_embedding_model_instance=word_embedding_model_instance
+        self.word_embed_fit_d1 = None
+        self.word_embed_fit_d2 = None
+        self.embedding_weight=embedding_weight
+        
+
+    def fit(self,df1_to_fit=[],df2_to_fit=[]):
+    
+        n, s, w = divide_columns(df1_to_fit, self.special_columns)
+        self.divide_col['numerical_cols'] = n
+        self.divide_col['special_field_cols'] = s
+        self.divide_col['word_embedding_cols'] = w
+
+        print('**** df1 divide columns ****')
+        [print(i, ': ', df1_to_fit.columns[j].values) for i, j in self.divide_col.items()]
+
+        print('\n','**** df2 divide columns ****')
+        [print(i, ': ', df2_to_fit.columns[j].values) for i, j in self.divide_col.items()]
+        
+        if len(df1_to_fit)==0 or len(df2_to_fit)==0:
+            raise ValueError('Please provide training data for the tf-idf model.')
+
+        
+        #fit word embeddings
+        if self.divide_col["word_embedding_cols"]: #process only if both col lists are not empty
+        
+            if self.word_embedding_model_instance==None: #if instance is not provided, use default
+                word_embed = load_word_embedding_model()
+            else:
+                word_embed = self.word_embedding_model_instance
+
+            self.word_embed_fit_d1 = word_embed.fit_embedding(df1_to_fit,self.divide_col["word_embedding_cols"], weight = self.embedding_weight)
+            self.word_embed_fit_d2 = word_embed.fit_embedding(df2_to_fit,self.divide_col["word_embedding_cols"], weight = self.embedding_weight)
+        
+        return self
+
+    def transform(self,df1=[],df2=[]): #df1 and df2 are both df with only one row
+
+        if len(df1)==0 or len(df2)==0:
+            raise ValueError('Got empty data.')
+        
+        if self.word_embed_fit_d1== None or self.word_embed_fit_d2== None:
+            raise ValueError('Please fit the processor first.')
+        
+        #process word embeddings
+        if self.divide_col["word_embedding_cols"]: #process only if both col lists are not empty
+            
+            df1_embed = df_to_embedding(self.word_embed_fit_d1,df1)
+            df2_embed = df_to_embedding(self.word_embed_fit_d2,df2)
+            
+        else:
+            df1_embed = np.array([])
+            df2_embed = np.array([])
+ 
+        # process special columns
+        if self.divide_col['special_field_cols']:
+
+            df1_special, lat1,long1 = preprocess_special_fields(df1.iloc[:,
+                                                    self.divide_col['special_field_cols']],
+                                                    self.phone_number,
+                                                    self.address_columns,
+                                                    self.geocode_address,
+                                                    self.api_key)
+            df2_special, lat2,long2 = preprocess_special_fields(df2.iloc[:,
+                                                    self.divide_col['special_field_cols']],
+                                                    self.phone_number,
+                                                    self.address_columns,
+                                                    self.geocode_address,
+                                                    self.api_key)
+
+            if self.geocode_address and self.api_key:
+                df1['lat'] = lat1
+                df1['long'] = long1
+                df2['lat'] = lat2
+                df2['long'] = long2
+                self.divide_col['numerical_cols'] = self.divide_col['numerical_cols'] +\
+                                               [-2,-1]
+
+        else:
+            df1_special = np.array([])
+            df2_special = np.array([])
+
+        # process numeric columns
+        if self.divide_col['numerical_cols']:
+            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix()
+            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix()
+
+        else:
+            df1_numeric = np.array([])
+            df2_numeric = np.array([])
+
+        ## after finishing preprocessing
+        processed_data = {"numerical":[df1_numeric, df2_numeric],
+                          "special_fields":[df1_special, df2_special],
+                          "word_embedding_fields":[df1_embed, df2_embed]
+                          }
+        return processed_data
+
+
+
+
+class Preprocessing_row():
+    def __init__(self,df1_to_fit=[],df2_to_fit=[],
+                 special_columns=[],
+                 phone_number=[],
+                 address_columns=[],
+                 geocode_address=False,
+                 api_key=None,
+                 word_embedding_model="word2vec",
+                 word_embedding_path=None,
+                 embedding_weight = 'tfidf'):
+        
+        if len(df1_to_fit)==0 or len(df2_to_fit)==0:
+            raise ValueError('Please provide training data for the tf-idf model.')
+        
+        self.phone_number=phone_number
+        self.address_columns=address_columns
+        self.geocode_address=geocode_address
+        self.api_key=api_key
+    
+        s = set(special_columns)
+        s.update(address_columns)
+        s.update(phone_number)
+        special_columns = list(s)
+
+        self.divide_col = {"numerical_cols": [],
+                      "special_field_cols":[],
+                      "word_embedding_cols":[]}
+
+        n, s, w = divide_columns(df1_to_fit, special_columns)
+        self.divide_col['numerical_cols'] = n
+        self.divide_col['special_field_cols'] = s
+        self.divide_col['word_embedding_cols'] = w
+
+        print('**** df1 divide columns ****')
+        [print(i, ': ', df1_to_fit.columns[j].values) for i, j in self.divide_col.items()]
+
+        print('\n','**** df2 divide columns ****')
+        [print(i, ': ', df2_to_fit.columns[j].values) for i, j in self.divide_col.items()]
+        
+        
+        self.word_embed_fit_d1 = None
+        self.word_embed_fit_d2 = None
+        
+        #fit word embeddings
+        if self.divide_col["word_embedding_cols"]: #process only if both col lists are not empty
+        
+            if word_embedding_model not in ["word2vec","fasttext","glove"]:
+                raise ValueError('Invalid model name.')
+            
+            elif word_embedding_model == "word2vec" and word_embedding_path == None:
+                word_embedding_path = 'data/embeddings/GoogleNews-vectors-negative300.bin'
+            
+            elif word_embedding_model == "fasttext" and word_embedding_path == None:
+                word_embedding_path = 'data/embeddings/cc.en.300.bin'
+            
+            elif word_embedding_model == "glove" and word_embedding_path == None:
+                word_embedding_path = 'data/embeddings/glove.42B.300d_word2vec.txt'
+                #has to be in non-binary readable by gensim.models.KeyedVectors.load_word2vec_format
+            
+            word_embed = Word_embedding_row(word_embedding_model,word_embedding_path) #initialization may take a while
+            self.word_embed_fit_d1 = word_embed.fit_embedding(df1_to_fit,self.divide_col["word_embedding_cols"], weight = embedding_weight)
+            self.word_embed_fit_d2 = word_embed.fit_embedding(df2_to_fit,self.divide_col["word_embedding_cols"], weight = embedding_weight)
+            
+
+    def process_zipcode(self):
+        pass
+    def process_phone_num(self):
+        pass
+
+    def overall_preprocess(self,df1=[],df2=[]): #df1 and df2 are both df with only one row
+
+        if len(df1)==0 or len(df2)==0:
+            raise ValueError('Got empty data.')
+        
+        #process word embeddings
+        if self.divide_col["word_embedding_cols"]: #process only if both col lists are not empty
+            
+            df1_embed = row_to_embedding(self.word_embed_fit_d1,df1)
+            df2_embed = row_to_embedding(self.word_embed_fit_d2,df2)
+            
+        else:
+            df1_embed = np.array([])
+            df2_embed = np.array([])
+ 
+        # process special columns
+        if self.divide_col['special_field_cols']:
+
+            df1_special, lat1,long1 = preprocess_special_fields(df1.iloc[:,
+                                                    self.divide_col['special_field_cols']],
+                                                    self.phone_number,
+                                                    self.address_columns,
+                                                    self.geocode_address,
+                                                    self.api_key)
+            df2_special, lat2,long2 = preprocess_special_fields(df2.iloc[:,
+                                                    self.divide_col['special_field_cols']],
+                                                    self.phone_number,
+                                                    self.address_columns,
+                                                    self.geocode_address,
+                                                    self.api_key)
+
+            if self.geocode_address and self.api_key:
+                df1['lat'] = lat1
+                df1['long'] = long1
+                df2['lat'] = lat2
+                df2['long'] = long2
+                self.divide_col['numerical_cols'] = self.divide_col['numerical_cols'] +\
+                                               [-2,-1]
+
+        else:
+            df1_special = np.array([])
+            df2_special = np.array([])
+
+        # process numeric columns
+        if self.divide_col['numerical_cols']:
+            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix()
+            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix()
 
         else:
             df1_numeric = np.array([])

@@ -57,4 +57,13 @@ def test_text_similarity_jaro_on_matrix():
                         [1., 0.63888889]])
     assert (np.array_equal(tmp, desired))
 
+def test_text_similarity_jaccard_on_matrix():
+    matrix_1 = np.array([["hello", "columbia university"],
+                         ["bye", "nyu"]])
+    matrix_2 = np.array([["helli", "columbia"],
+                         ["bye", "new york"]])
+
+    tmp = similarities().text_similarity_on_matrix(matrix_1, matrix_2, method="jaccard")
+    assert (tmp.shape==(4,2))
+
 
