@@ -107,7 +107,7 @@ class Preprocessing():
 
 
         #process word embeddings
-        if divide_col["word_embedding_cols"]: #process only if both col lists are not empty
+        if divide_col["word_embedding_cols"] and word_embedding_model != 'none': #process only if both col lists are not empty
         
             if word_embedding_model not in ["word2vec","fasttext","glove"]:
                 raise ValueError('Invalid model name.')

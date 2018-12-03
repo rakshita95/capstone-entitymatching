@@ -46,7 +46,9 @@ preprocess both dataframes
 '''
 processed_data = Preprocessing().overall_preprocess(df1, df2,
                                                     special_columns=['title','manufacturer'],
-                                                    embedding_weight='tfidf') # may take a while bc loading pretrained word embedding model
+                                                    embedding_weight='tfidf',
+                                                    word_embedding_model="glove")
+ # may take a while bc loading pretrained word embedding model
 
 '''
 get data
@@ -103,8 +105,8 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.33, stra
 '''
 modeling
 '''
-col_means = np.nanmean(x_train,axis=0)
-inds_train  = np.where(np.isnan(x_train))
+col_means = np.nanmean(x_train, axis=0)
+inds_train = np.where(np.isnan(x_train))
 inds_test = np.where(np.isnan(x_test))
 x_train[inds_train]=np.take(col_means, inds_train[1])
 x_test[inds_test]=np.take(col_means, inds_test[1])
@@ -115,18 +117,16 @@ from sklearn.metrics import roc_curve,  precision_score, recall_score, f1_score
 import matplotlib.pyplot as plt
 from sklearn.model_selection import RandomizedSearchCV
 
-#upsample
-x_maj = x_train[y_train==0]
-x_min = x_train[y_train==1]
-x_min_upsampled = resample(x_min,n_samples=x_maj.shape[0],random_state=42)
-x_train_new = np.vstack((x_maj, x_min_upsampled))
-y_train_new = np.hstack((np.zeros(x_maj.shape[0]), np.ones(x_maj.shape[0])))
+# #upsample
+# x_maj = x_train[y_train==0]
+# x_min = x_train[y_train==1]
+# x_min_upsampled = resample(x_min,n_samples=x_maj.shape[0],random_state=42)
+# x_train_new = np.vstack((x_maj, x_min_upsampled))
+# y_train_new = np.hstack((np.zeros(x_maj.shape[0]), np.ones(x_maj.shape[0])))
 
-# CV
-# Number of trees in random forest
-n_estimators = [int(x) for x in np.linspace(start = 100, stop = 1000, num = 10)]
+n_estimators = [300]
 # Number of features to consider at every split
-max_features = ['auto', 'sqrt']
+max_features = ['sqrt']
 # Maximum number of levels in tree
 max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
 max_depth.append(None)
@@ -147,33 +147,71 @@ print(random_grid)
 # Use the random grid to search for best hyperparameters
 rf = RandomForestClassifier()
 # Random search of parameters and use all available cores
-rf_random = RandomizedSearchCV(estimator=rf,
+random_search = RandomizedSearchCV(estimator=rf,
                                param_distributions=random_grid,
                                n_iter=100,
                                cv=3, verbose=2, random_state=42,
                                n_jobs=-1, scoring='f1')
-rf_random.fit(x_train_new, y_train_new)
-print(rf_random.best_params_)
-
+random_search.fit(x_train, y_train)
+print(random_search.best_params_)
+print("\tMean CV f1-score : %1.3f" % random_search.best_score_ )
 # fit
-# rf = RandomForestClassifier(n_estimators=100, max_depth=2,random_state=0)
-# rf.fit(x_train, y_train)
+
+# rf_random = random_search.best_estimator_
+rf_random = RandomForestClassifier(n_estimators=300,
+                                   min_samples_split=10,
+                                   min_samples_leaf=2,
+                                   max_features='sqrt', max_depth=20,
+                                   bootstrap=False, random_state=42)
+rf_random.fit(x_train, y_train)
 # predict
 y_pred_rf = rf_random.predict(x_test)
 y_pred_prob_rf = rf_random.predict_proba(x_test)[:, 1]
 # roc curve
 fpr_rf, tpr_rf, _ = roc_curve(y_test, y_pred_prob_rf)
 # precision, recall, f1
+print('RF')
 print("\tPrecision: %1.3f" % precision_score(y_test, y_pred_rf))
 print("\tRecall: %1.3f" % recall_score(y_test, y_pred_rf))
-print("\tF1: %1.3f\n" % f1_score(y_test, y_pred_rf))
-print("\tAccuracy: %1.3f\n" % (sum(y_pred_rf==y_test)/len(y_test)))
+print("\tF1: %1.3f" % f1_score(y_test, y_pred_rf))
+print("\tAccuracy: {}".format(sum(y_pred_rf==y_test)/len(y_test)))
 
+# print(cross_val_score(lasso, X, y, cv=3))
+import sklearn
+dt = sklearn.tree.DecisionTreeClassifier().fit(x_train,y_train)
+# predict
+y_pred_dt = dt.predict(x_test)
+y_pred_prob_dt = dt.predict_proba(x_test)[:, 1]
+# roc curve
+fpr_dt, tpr_dt, _ = roc_curve(y_test, y_pred_prob_dt)
+# precision, recall, f1
+print('DT')
+print("\tPrecision: %1.3f" % precision_score(y_test, y_pred_dt))
+print("\tRecall: %1.3f" % recall_score(y_test, y_pred_dt))
+print("\tF1: %1.3f" % f1_score(y_test, y_pred_dt))
+print("\tAccuracy: {}".format(sum(y_pred_dt==y_test)/len(y_test)))
+print('SVC')
+svc =sklearn.svm.SVC().fit(x_train,y_train)
+# predict
+y_pred_svc = svc.predict(x_test)
+y_pred_prob_svc = svc.predict_proba(x_test)[:, 1]
+# roc curve
+fpr_svc, tpr_svc, _ = roc_curve(y_test, y_pred_prob_svc)
+# precision, recall, f1
+print("\tPrecision: %1.3f" % precision_score(y_test, y_pred_svc))
+print("\tRecall: %1.3f" % recall_score(y_test, y_pred_svc))
+print("\tF1: %1.3f" % f1_score(y_test, y_pred_svc))
+print("\tAccuracy: {}".format(sum(y_pred_svc==y_test)/len(y_test)))
+
+import matplotlib.pyplot as plt
 plt.figure(1)
 plt.plot([0, 1], [0, 1], 'k--')
-plt.plot(fpr_rf, tpr_rf, label='RF')
+plt.plot(fpr_rf, tpr_rf, 'r',label='RF')
+plt.plot(fpr_dt, tpr_dt, 'g',label='DT')
+plt.plot(fpr_svc, tpr_svc, 'b',label='SVC')
 plt.xlabel('False positive rate')
 plt.ylabel('True positive rate')
-plt.title('ROC curve')
+plt.title('ROC curve - Bibliographic')
 plt.legend(loc='best')
 plt.show()
+
