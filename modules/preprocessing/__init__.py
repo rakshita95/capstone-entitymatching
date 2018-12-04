@@ -29,8 +29,8 @@ def divide_columns(df, special_columns=[]):
     numeric = []
     special = []
     
+
     print(special_columns)
-    print(type(special_columns[0]))
     if special_columns:
         if type(special_columns[0]) == str:
             for s in special_columns:
@@ -40,8 +40,7 @@ def divide_columns(df, special_columns=[]):
             special = special_columns
     else:
         special = []
-    print(special_columns)
-
+        
 
     t = 0
     for i in df.iloc[0].tolist():
@@ -65,9 +64,9 @@ class Preprocessing():
 
     def overall_preprocess(self,df1,df2,
                            special_columns=[],
-                           phone_number=[],
-                           address_columns = [],
-                           zip_code=[],
+                           phone_number=None,
+                           address_columns=[],
+                           zip_code=None,
                            geocode_address=False,
                            api_key=None,
                            word_embedding_model="word2vec",
@@ -92,8 +91,10 @@ class Preprocessing():
         """
     
         special_columns += address_columns
-        special_columns += phone_number
-        special_columns += zip_code
+        if self.phone_number:
+            special_columns += [phone_number]
+        if self.zip_code:
+            special_columns += [zip_code]
         
 
         divide_col = {"numerical_cols": [],
@@ -204,9 +205,9 @@ def load_word_embedding_model(word_embedding_model="word2vec",word_embedding_pat
 class Preprocessor():
     def __init__(self,word_embedding_model_instance=None,
                  special_columns=[],
-                 phone_number=[],
+                 phone_number=None,
                  address_columns=[],
-                 zip_code=[],
+                 zip_code=None,
                  geocode_address=False,
                  api_key=None,
                  embedding_weight='tfidf'):
@@ -218,9 +219,11 @@ class Preprocessor():
         self.api_key=api_key
         self.special_columns = special_columns
         self.special_columns += self.address_columns
-        self.special_columns += self.phone_number
-        self.special_columns += self.zip_code
-        
+        if self.phone_number:
+            self.special_columns += [self.phone_number]
+        if self.zip_code:
+            self.special_columns += [self.zip_code]
+
         self.divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
                       "word_embedding_cols":[]}
@@ -233,7 +236,7 @@ class Preprocessor():
         
 
     def fit(self,df1_to_fit=[],df2_to_fit=[]):
-    
+
         n, s, w = divide_columns(df1_to_fit, self.special_columns)
         self.divide_col['numerical_cols'] = n
         self.divide_col['special_field_cols'] = s
@@ -332,9 +335,9 @@ class Preprocessor():
 class Preprocessing_row():
     def __init__(self,df1_to_fit=[],df2_to_fit=[],
                  special_columns=[],
-                 phone_number=[],
+                 phone_number=None,
                  address_columns=[],
-                 zip_code=[],
+                 zip_code=None,
                  geocode_address=False,
                  api_key=None,
                  word_embedding_model="word2vec",
@@ -351,8 +354,10 @@ class Preprocessing_row():
         self.api_key=api_key
         self.special_columns = special_columns
         self.special_columns += self.address_columns
-        self.special_columns += self.phone_number
-        self.special_columns += self.zip_code
+        if self.phone_number:
+            self.special_columns += [self.phone_number]
+        if self.zip_code:
+            self.special_columns += [self.zip_code]
 
         self.divide_col = {"numerical_cols": [],
                       "special_field_cols":[],

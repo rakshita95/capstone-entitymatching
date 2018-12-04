@@ -54,7 +54,7 @@ preprocess both dataframes
 '''
 processed_data = Preprocessing().overall_preprocess(df1, df2,
                                                     special_columns=['name','addressStreet'],
-                                                    zip_code = ["addressZip"],
+                                                    zip_code = "addressZip",
                                                     embedding_weight='tfidf')
                                                    # may take a while bc loading pretrained word embedding model
 

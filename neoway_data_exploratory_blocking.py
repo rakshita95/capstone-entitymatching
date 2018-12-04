@@ -14,7 +14,7 @@ read data
 '''
 df1 = pd.read_csv('data/companies_data_neoway/reference.csv')
 df2 = pd.read_csv('data/companies_data_neoway/input.csv')
-block = pd.read_csv('data/company_zipcode_blocked.csv')
+block = pd.read_csv('company_zipcode_blocked_test_test.csv')
 block = block.drop_duplicates() #in case there are duplicates in blocked.csv
 
 '''
@@ -54,7 +54,7 @@ block_train = block[block['input_serial'].isin(df1_train_id_col)]
 block_test = block[block['input_serial'].isin(df1_test_id_col)]
 
 
-processor = Preprocessor(special_columns=['name','addressStreet'],zip_code=['addressZip'])
+processor = Preprocessor(special_columns=['name','addressStreet'],zip_code='addressZip')
 processor.fit(df1_train,df2) #TODO: add fit_tansform function so no need to transform after fitting on training data
 
 
