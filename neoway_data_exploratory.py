@@ -26,9 +26,9 @@ from sklearn.model_selection import train_test_split
 '''
 read data
 '''
-df1 = pd.read_csv('data/companies_data_neoway_subsample/reference.csv')
-df2 = pd.read_csv('data/companies_data_neoway_subsample/input.csv')
-match_df = pd.read_csv('data/companies_data_neoway_subsample/match.csv')
+df1 = pd.read_csv('data/companies_data_neoway_sample/reference.csv')
+df2 = pd.read_csv('data/companies_data_neoway_sample/input.csv')
+match_df = pd.read_csv('data/companies_data_neoway_sample/match.csv')
 
 '''
 specify id names
@@ -54,13 +54,14 @@ preprocess both dataframes
 '''
 processed_data = Preprocessing().overall_preprocess(df1, df2,
                                                     special_columns=['name','addressStreet'],
+                                                    zip_code = "addressZip",
                                                     embedding_weight='tfidf')
                                                    # may take a while bc loading pretrained word embedding model
 
 '''
 get numerical data
 '''
-
+# need fix addressZip and not to see it as numeric
 num_matrix_1, num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
 embed_matrix_1, embed_matrix_2 = processed_data["word_embedding_fields"][0],processed_data["word_embedding_fields"][1]
 spc_matrix_1, spc_matrix_2 = processed_data["special_fields"][0],processed_data["special_fields"][1]

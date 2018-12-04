@@ -39,6 +39,7 @@ def divide_columns(df, special_columns=[]):
     else:
         special = []
 
+
     t = 0
 
     for i in df.loc[0].tolist():
@@ -64,6 +65,7 @@ class Preprocessing():
                            special_columns=[],
                            phone_number=[],
                            address_columns = [],
+                           zip_code=None,
                            geocode_address=False,
                            api_key=None,
                            word_embedding_model="word2vec",
@@ -87,10 +89,8 @@ class Preprocessing():
         :return: dict | a dictionary of np.arrays with the three values
         """
 
-        s = set(special_columns)
-        s.update(address_columns)
-        s.update(phone_number)
-        special_columns = list(s)
+        special_columns.append(zip_code)
+        print(special_columns)
 
         divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
@@ -139,12 +139,14 @@ class Preprocessing():
                                                     divide_col['special_field_cols']],
                                                     phone_number,
                                                     address_columns,
+                                                    zip_code,
                                                     geocode_address,
                                                     api_key)
             df2_special, lat2,long2 = preprocess_special_fields(df2.iloc[:,
                                                     divide_col['special_field_cols']],
                                                     phone_number,
                                                     address_columns,
+                                                    zip_code,
                                                     geocode_address,
                                                     api_key)
 
