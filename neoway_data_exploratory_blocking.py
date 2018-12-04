@@ -53,6 +53,7 @@ df2 = df2.drop(columns = [df2_id])
 block_train = block[block['input_serial'].isin(df1_train_id_col)]
 block_test = block[block['input_serial'].isin(df1_test_id_col)]
 
+print('preprocessing')
 
 processor = Preprocessor(special_columns=['name','addressStreet'],zip_code='addressZip')
 processor.fit(df1_train,df2) #TODO: add fit_tansform function so no need to transform after fitting on training data
@@ -61,6 +62,7 @@ processor.fit(df1_train,df2) #TODO: add fit_tansform function so no need to tran
 '''
 get numerical data
 '''
+print('generate feature matrix')
 def get_feature_matrix(df1,df2,df1_index,df2_index,block):
     processed_data = processor.transform(df1,df2)
     num_matrix_1,num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
@@ -86,6 +88,7 @@ x_test = get_feature_matrix(df1_test,df2,df1_test_index,df2_index,block_test)
 '''
 generate labels
 '''
+print('generate labels')
 mapping=pd.read_csv('data/companies_data_neoway/match.csv')
 mapping['label']=1
 
@@ -123,40 +126,40 @@ x_test[inds_test]=np.take(col_means, inds_test[1])
 # x_train_new = np.vstack((x_maj, x_min_upsampled))
 # y_train_new = np.hstack((np.zeros(x_maj.shape[0]), np.ones(x_maj.shape[0])))
 
-# CV
-# Number of trees in random forest
-# n_estimators = [int(x) for x in np.linspace(start = 100, stop = 1000, num = 10)]
-n_estimators=[300]
-# Number of features to consider at every split
-max_features = ['sqrt']
-# Maximum number of levels in tree
-max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
-max_depth.append(None)
-# Minimum number of samples required to split a node
-min_samples_split = [2, 5, 10]
-# Minimum number of samples required at each leaf node
-min_samples_leaf = [1, 2, 4]
-# Method of selecting samples for training each tree
-bootstrap = [True, False]
-# Create the random grid
-random_grid = {'n_estimators': n_estimators,
-               'max_features': max_features,
-               'max_depth': max_depth,
-               'min_samples_split': min_samples_split,
-               'min_samples_leaf': min_samples_leaf,
-               'bootstrap': bootstrap}
-print(random_grid)
-# Use the random grid to search for best hyperparameters
-rf = RandomForestClassifier()
-# Random search of parameters and use all available cores
-random_search = RandomizedSearchCV(estimator=rf,
-                               param_distributions=random_grid,
-                               n_iter=100,
-                               cv=3, verbose=2, random_state=42,
-                               n_jobs=-1, scoring='f1')
-random_search.fit(x_train, y_train)
-print(random_search.best_params_)
-print("\tMean CV f1-score : %1.3f" % random_search.best_score_ )
+# # CV
+# # Number of trees in random forest
+# # n_estimators = [int(x) for x in np.linspace(start = 100, stop = 1000, num = 10)]
+# n_estimators=[300]
+# # Number of features to consider at every split
+# max_features = ['sqrt']
+# # Maximum number of levels in tree
+# max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+# max_depth.append(None)
+# # Minimum number of samples required to split a node
+# min_samples_split = [2, 5, 10]
+# # Minimum number of samples required at each leaf node
+# min_samples_leaf = [1, 2, 4]
+# # Method of selecting samples for training each tree
+# bootstrap = [True, False]
+# # Create the random grid
+# random_grid = {'n_estimators': n_estimators,
+#                'max_features': max_features,
+#                'max_depth': max_depth,
+#                'min_samples_split': min_samples_split,
+#                'min_samples_leaf': min_samples_leaf,
+#                'bootstrap': bootstrap}
+# print(random_grid)
+# # Use the random grid to search for best hyperparameters
+# rf = RandomForestClassifier()
+# # Random search of parameters and use all available cores
+# random_search = RandomizedSearchCV(estimator=rf,
+#                                param_distributions=random_grid,
+#                                n_iter=100,
+#                                cv=3, verbose=2, random_state=42,
+#                                n_jobs=-1, scoring='f1')
+# random_search.fit(x_train, y_train)
+# print(random_search.best_params_)
+# print("\tMean CV f1-score : %1.3f" % random_search.best_score_ )
 # fit
 
 # rf_random = random_search.best_estimator_
