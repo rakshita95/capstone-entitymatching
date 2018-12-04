@@ -87,7 +87,7 @@ processed_data = Preprocessing().overall_preprocess(df1.drop(columns=['descripti
 num_matrix_1, num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
 spc_matrix_1, spc_matrix_2 = processed_data["special_fields"][0],processed_data["special_fields"][1]
 num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
-spc_final_data = similarities().text_similarity_on_matrix(spc_matrix_1,spc_matrix_2)
+spc_final_data = similarities().text_similarity_on_matrix(spc_matrix_1,spc_matrix_2,method='jaccard')
 
 df1['key'] = 0
 df2['key'] = 0
@@ -121,15 +121,14 @@ Make Tensors
 '''
 # collate_fn=pad_batch,
 
-
 class Transform(Dataset):
     def __init__(self, sim, description, label, word2idx):
         self.sim = sim
         self.desc = description
         self.label = label
         self.word2idx = word2idx
-        self.max_len_desc1 = 1989
-        self.max_len_desc2 = 42
+        self.max_len_desc1 = 50#1989
+        self.max_len_desc2 = 50#42
 
     def __len__(self):
         return len(self.label)#+len(self.desc)+len(self.sim)
@@ -142,6 +141,11 @@ class Transform(Dataset):
 
         desc1_idx1 = [self.word2idx.get(word, 1) for word in desc1]
         desc2_idx1 = [self.word2idx.get(word, 1) for word in desc2]
+
+        if len(desc1_idx1) > 50:
+            desc1_idx1 = desc1_idx1[:50]
+        if len(desc2_idx1) > 50:
+            desc2_idx1 = desc2_idx1[:50]
 
         # Zero pad
         desc1_idx = LongTensor(1, self.max_len_desc1).zero_()  # N X max_len
@@ -156,13 +160,15 @@ class Transform(Dataset):
         return desc1_idx, desc2_idx, sim, label
 
 
-train_dataset = Transform(sim_train, desc_train.to_dict('records'), y_train, word2idx)
+train_dataset = Transform(sim_train, desc_train.to_dict('records'), y_train,
+                          word2idx)
 train_sampler = torch.utils.data.sampler.RandomSampler(train_dataset)
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, sampler=train_sampler, num_workers=5,
     pin_memory=True)
 
-dev_dataset = Transform(sim_test, desc_test.to_dict('records'), y_test, word2idx)  # feature2idx,
+dev_dataset = Transform(sim_test, desc_test.to_dict('records'), y_test,
+                        word2idx)  # feature2idx,
 dev_sampler = torch.utils.data.sampler.SequentialSampler(dev_dataset)
 dev_loader = torch.utils.data.DataLoader(
     dev_dataset, batch_size=batch_size, sampler=dev_sampler, num_workers=5,
@@ -202,7 +208,8 @@ def load_embeddings(word2idx, glove_file):
     return weights_matrix
 
 
-weights_matrix = load_embeddings(word2idx, '/Users/rakshitanagalla/Desktop/Project/do/glove.6B/glove.840B.300d.txt')
+weights_matrix = load_embeddings(word2idx, '/Users/rakshitanagalla/Desktop/Proj\
+ect/do/glove.6B/glove.840B.300d.txt')
 emb_layer = nn.Embedding(num_embeddings=len(word2idx), embedding_dim=300,
                          padding_idx=0)
 emb_layer.weight.data.copy_(torch.from_numpy(weights_matrix))
@@ -219,12 +226,13 @@ class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
 
-        self.rnn1 = nn.LSTM(input_size=300, hidden_size=50) # for entity1
-        self.rnn2 = nn.LSTM(input_size=300, hidden_size=50) # for entity2
+        self.rnn1 = nn.LSTM(input_size=300, hidden_size=50, bidirectional=True,
+                            num_layers=1) # for entity1
+        # self.rnn2 = nn.LSTM(input_size=300, hidden_size=50) # for entity2
         # self.rnnbi2 = nn.LSTM(input_size=300, hidden_size=50, bidirectional=True)
 
         self.fcn1 = nn.Sequential(
-            nn.Linear(53, 100),  # 8200
+            nn.Linear(103, 100),  # 53
             nn.ReLU(inplace=True),
             nn.Dropout(0.2))  # nn.Dropout(0.2) nn.Linear(100, 1),
         # self.merge_fcn1.weight.data.normal_()
@@ -234,21 +242,28 @@ class Model(nn.Module):
             nn.Dropout(0.2))  # nn.Dropout(0.2) nn.Linear(100, 1), nn.ReLU(inplace=True),
         # self.final_fcn.weight.data.normal_() nn.ReLU(inplace=True),
 
+
+
     def forward(self, desc1_embed, desc2_embed, sim):
 
         batch_size = desc1_embed.size()[0]
 
-        desc1_encoded = self.rnn1(desc1_embed.transpose(1, 0))[1][
-            0].squeeze()
-        desc2_encoded = self.rnn2(desc2_embed.transpose(1, 0))[1][
-            0].squeeze()
+        desc1_encoded = self.rnn1(desc1_embed.transpose(1, 0))[1][0]
+        forward_state1, backward_state1 = desc1_encoded[0, :, :].squeeze(), \
+                                          desc1_encoded[1, :, :].squeeze()
+        merged_state1 = torch.cat((forward_state1, backward_state1), dim=1)
 
-        # print("A1: ", desc1_encoded.size())
-        # print("A2: ", desc2_encoded.size())
+        desc2_encoded = self.rnn1(desc2_embed.transpose(1, 0))[1][0]
+        forward_state2, backward_state2 = desc2_encoded[0, :, :].squeeze(), \
+                                          desc2_encoded[1, :, :].squeeze()
+        merged_state2 = torch.cat((forward_state2, backward_state2), dim=1)
+
+        # print("A1: ", merged_state1.size())
+        # print("A2: ", merged_state2.size())
         # print("sim: ", sim.size())
         # print(type(sim))
         # print(type(desc1_encoded - desc2_encoded))
-        sim_added = torch.cat([desc1_encoded - desc2_encoded,
+        sim_added = torch.cat([merged_state1 - merged_state2,
                               sim.float()], 1)
         # print("final: ", sim_added.size())
 
@@ -373,7 +388,7 @@ import matplotlib.pyplot as plt
 
 plt.plot(epoch_list, test_list, 'r', label='test')
 plt.plot(epoch_list, train_list, 'g', label='train')
-plt.title('Error vs epoch')
+plt.title('f1-score vs epoch')
 plt.legend()
 
 # plt.figure()
@@ -385,9 +400,9 @@ plt.plot(loss_list)
 plt.title('Loss')
 
 
-plt.figure()
-plt.hist(length_google, bins=20, label = 'google')
+# plt.figure()
 # plt.hist(length_google, bins=20, label = 'google')
-plt.xlabel('Length of product description')
-plt.ylabel('Frequency')
-plt.legend()
+# # plt.hist(length_google, bins=20, label = 'google')
+# plt.xlabel('Length of product description')
+# plt.ylabel('Frequency')
+# plt.legend()
