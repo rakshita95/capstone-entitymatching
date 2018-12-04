@@ -26,8 +26,8 @@ from sklearn.model_selection import train_test_split
 '''
 read data
 '''
-df1 = pd.read_csv('data/companies_data_neoway_sample/reference.csv')
-df2 = pd.read_csv('data/companies_data_neoway_sample/input.csv')
+df1 = pd.read_csv('data/companies_data_neoway_subsample/reference.csv')
+df2 = pd.read_csv('data/companies_data_neoway_subsample/input.csv')
 match_df = pd.read_csv('data/companies_data_neoway_sample/match.csv')
 
 '''

@@ -14,7 +14,7 @@ read data
 '''
 df1 = pd.read_csv('data/companies_data_neoway/reference.csv')
 df2 = pd.read_csv('data/companies_data_neoway/input.csv')
-block=pd.read_csv('data/company_zipcode_blocked.csv')
+block = pd.read_csv('data/company_zipcode_blocked.csv')
 block = block.drop_duplicates() #in case there are duplicates in blocked.csv
 
 '''
@@ -32,9 +32,9 @@ train/test split on input dataset
 df1_train, df1_test = train_test_split(df1, test_size=0.33, random_state=42)
 
 #set index dic
-df1_train_index = dict(zip(df1_train['id'], df1_train.reset_index().index))
-df1_test_index = dict(zip(df1_test['id'], df1_test.reset_index().index))
-df2_index = dict(zip(df2['id'], df2.reset_index().index))
+df1_train_index = dict(zip(df1_train[df1_id], df1_train.reset_index().index))
+df1_test_index = dict(zip(df1_test[df1_id], df1_test.reset_index().index))
+df2_index = dict(zip(df2[df2_id], df2.reset_index().index))
 
 '''
 id column manipulation
@@ -91,28 +91,12 @@ y_train = pd.merge(block_train,mapping,left_on=['input_serial','refer_serial'],r
 #y_train = y_train.drop_duplicates() #bc some depulicates in abt_buy_perfectMapping.csv?
 y_train = y_train["label"].fillna(0).astype(int)
 
-y_test = pd.merge(block_test,mapping,left_on=['input_serial','refer_serial'],right_on=['idAbt','idBuy'],how='left')
+y_test = pd.merge(block_test,mapping,left_on=['input_serial','refer_serial'],right_on=['serial_input','serial_reference'],how='left')
 #y_test = y_test.drop_duplicates() #bc some depulicates in abt_buy_perfectMapping.csv?
 y_test = y_test["label"].fillna(0).astype(int)
 
 print(y_train.shape[0] == x_train.shape[0])
 print(y_test.shape[0] == x_test.shape[0])
-
-
-'''
-concatenate all data
-
-# only concatenate non-empty similarity matrices
-non_empty = []
-
-for m in num_final_data, spc_final_data,embed_tfidf_data:#, embed_min_data, embed_max_data:#, embed_mean_data,embed_tfidf_data#:
-    if m.size !=0:
-        non_empty.append(m)
-
-x = np.concatenate([i for i in non_empty], axis = 1)
-
-print(x.shape)
-'''
 
 print("***start modeling***")
 '''
