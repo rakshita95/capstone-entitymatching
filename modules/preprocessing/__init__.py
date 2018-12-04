@@ -39,6 +39,7 @@ def divide_columns(df, special_columns=[]):
     else:
         special = []
 
+
     t = 0
 
     for i in df.loc[0].tolist():
@@ -64,6 +65,7 @@ class Preprocessing():
                            special_columns=[],
                            phone_number=[],
                            address_columns = [],
+                           zip_code=None,
                            geocode_address=False,
                            api_key=None,
                            word_embedding_model="word2vec",
@@ -87,11 +89,8 @@ class Preprocessing():
         :return: dict | a dictionary of np.arrays with the three values
         """
 
-        s = set(special_columns)
-        s.update(address_columns)
-        s.update(phone_number)
-        
-        special_columns = list(s)
+        special_columns.append(zip_code)
+
 
         divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
@@ -140,12 +139,14 @@ class Preprocessing():
                                                     divide_col['special_field_cols']],
                                                     phone_number,
                                                     address_columns,
+                                                    zip_code,
                                                     geocode_address,
                                                     api_key)
             df2_special, lat2,long2 = preprocess_special_fields(df2.iloc[:,
                                                     divide_col['special_field_cols']],
                                                     phone_number,
                                                     address_columns,
+                                                    zip_code,
                                                     geocode_address,
                                                     api_key)
 
@@ -211,12 +212,8 @@ class Preprocessor():
         self.zip_code=zip_code
         self.geocode_address=geocode_address
         self.api_key=api_key
-        s = set(special_columns)
-        s.update(address_columns)
-        s.update(phone_number)
-        s.update(zip_code)
-        self.special_columns = list(s)
-
+        self.special_columns = special_columns.append(self.zip_code)
+        
         self.divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
                       "word_embedding_cols":[]}
@@ -283,15 +280,15 @@ class Preprocessor():
                                                     self.divide_col['special_field_cols']],
                                                     self.phone_number,
                                                     self.address_columns,
-                                                    self.geocode_address,
                                                     self.zip_code,
+                                                    self.geocode_address,
                                                     self.api_key)
             df2_special, lat2,long2 = preprocess_special_fields(df2.iloc[:,
                                                     self.divide_col['special_field_cols']],
                                                     self.phone_number,
                                                     self.address_columns,
-                                                    self.geocode_address,
                                                     self.zip_code,
+                                                    self.geocode_address,
                                                     self.api_key)
 
             if self.geocode_address and self.api_key:
@@ -345,12 +342,7 @@ class Preprocessing_row():
         self.zip_code=zip_code
         self.geocode_address=geocode_address
         self.api_key=api_key
-    
-        s = set(special_columns)
-        s.update(address_columns)
-        s.update(phone_number)
-        s.update(zip_code)
-        special_columns = list(s)
+        self.special_columns = special_columns.append(self.zip_code)
 
         self.divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
@@ -419,15 +411,15 @@ class Preprocessing_row():
                                                     self.divide_col['special_field_cols']],
                                                     self.phone_number,
                                                     self.address_columns,
-                                                    self.geocode_address,
                                                     self.zip_code,
+                                                    self.geocode_address,
                                                     self.api_key)
             df2_special, lat2,long2 = preprocess_special_fields(df2.iloc[:,
                                                     self.divide_col['special_field_cols']],
                                                     self.phone_number,
                                                     self.address_columns,
-                                                    self.geocode_address,
                                                     self.zip_code,
+                                                    self.geocode_address,
                                                     self.api_key)
 
             if self.geocode_address and self.api_key:
