@@ -44,10 +44,11 @@ def preprocess_phone(number):
     number = re.sub(r'\W+', '', number)
 
     return number
+
 def preprocess_zipcode(zipcode):
 
-    zipcode = zipcode.split("-")[0]
     zipcode = str(zipcode)
+    zipcode = zipcode.split("-")[0]
     return zipcode
 
 
@@ -88,7 +89,7 @@ def preprocess_special_fields(df,
         df[phone_number] = df[phone_number].apply(preprocess_phone)
     if zip_code:
         df[zip_code] = df[zip_code].apply(preprocess_zipcode)
-        df[zip_code] = df[zip_code].astype(int)
+        #df[zip_code] = df[zip_code].astype(int) #commented out bc everything cast to string type later on
 
     #TODO: add e-mail preprocessing.
 

@@ -28,7 +28,7 @@ read data
 '''
 df1 = pd.read_csv('data/companies_data_neoway_subsample/reference.csv')
 df2 = pd.read_csv('data/companies_data_neoway_subsample/input.csv')
-match_df = pd.read_csv('data/companies_data_neoway_sample/match.csv')
+match_df = pd.read_csv('data/companies_data_neoway_subsample/match.csv')
 
 '''
 specify id names
@@ -54,7 +54,7 @@ preprocess both dataframes
 '''
 processed_data = Preprocessing().overall_preprocess(df1, df2,
                                                     special_columns=['name','addressStreet'],
-                                                    zip_code = "addressZip",
+                                                    zip_code = ["addressZip"],
                                                     embedding_weight='tfidf')
                                                    # may take a while bc loading pretrained word embedding model
 

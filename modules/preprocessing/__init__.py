@@ -28,7 +28,9 @@ def divide_columns(df, special_columns=[]):
     embeddings = []
     numeric = []
     special = []
-
+    
+    print(special_columns)
+    print(type(special_columns[0]))
     if special_columns:
         if type(special_columns[0]) == str:
             for s in special_columns:
@@ -38,11 +40,11 @@ def divide_columns(df, special_columns=[]):
             special = special_columns
     else:
         special = []
+    print(special_columns)
 
 
     t = 0
-
-    for i in df.loc[0].tolist():
+    for i in df.iloc[0].tolist():
         if type(i) == str:
             embeddings.append(t)
         #elif type(i) in [int, float, np.int64, np.float32]:
@@ -65,7 +67,7 @@ class Preprocessing():
                            special_columns=[],
                            phone_number=[],
                            address_columns = [],
-                           zip_code=None,
+                           zip_code=[],
                            geocode_address=False,
                            api_key=None,
                            word_embedding_model="word2vec",
@@ -88,9 +90,11 @@ class Preprocessing():
         :param word_embedding_path: str | path to the embedding dictionary, if None, use default dataset
         :return: dict | a dictionary of np.arrays with the three values
         """
-
-        special_columns.append(zip_code)
-
+    
+        special_columns += address_columns
+        special_columns += phone_number
+        special_columns += zip_code
+        
 
         divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
@@ -202,7 +206,7 @@ class Preprocessor():
                  special_columns=[],
                  phone_number=[],
                  address_columns=[],
-                 zip_code=None,
+                 zip_code=[],
                  geocode_address=False,
                  api_key=None,
                  embedding_weight='tfidf'):
@@ -212,7 +216,10 @@ class Preprocessor():
         self.zip_code=zip_code
         self.geocode_address=geocode_address
         self.api_key=api_key
-        self.special_columns = special_columns.append(self.zip_code)
+        self.special_columns = special_columns
+        self.special_columns += self.address_columns
+        self.special_columns += self.phone_number
+        self.special_columns += self.zip_code
         
         self.divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
@@ -327,7 +334,7 @@ class Preprocessing_row():
                  special_columns=[],
                  phone_number=[],
                  address_columns=[],
-                 zip_code=None,
+                 zip_code=[],
                  geocode_address=False,
                  api_key=None,
                  word_embedding_model="word2vec",
@@ -342,7 +349,10 @@ class Preprocessing_row():
         self.zip_code=zip_code
         self.geocode_address=geocode_address
         self.api_key=api_key
-        self.special_columns = special_columns.append(self.zip_code)
+        self.special_columns = special_columns
+        self.special_columns += self.address_columns
+        self.special_columns += self.phone_number
+        self.special_columns += self.zip_code
 
         self.divide_col = {"numerical_cols": [],
                       "special_field_cols":[],

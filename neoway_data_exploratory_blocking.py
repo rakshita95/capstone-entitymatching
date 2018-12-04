@@ -54,7 +54,7 @@ block_train = block[block['input_serial'].isin(df1_train_id_col)]
 block_test = block[block['input_serial'].isin(df1_test_id_col)]
 
 
-processor = Preprocessor(special_columns=['name','addressStreet'],zip_code='addressZip')
+processor = Preprocessor(special_columns=['name','addressStreet'],zip_code=['addressZip'])
 processor.fit(df1_train,df2) #TODO: add fit_tansform function so no need to transform after fitting on training data
 
 
