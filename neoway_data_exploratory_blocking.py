@@ -73,7 +73,9 @@ def get_feature_matrix(df1,df2,df1_index,df2_index,block):
         df2_i = df2_index[r['refer_serial']]
         row+=[similarities().numerical_similarity_on_matrix(num_matrix_1[[df1_i]],num_matrix_2[[df2_i]])]
         row+=[similarities().vector_similarity_on_matrix(embed_matrix_1[[df1_i]],embed_matrix_2[[df2_i]])]
-        row+=[similarities().text_similarity_on_matrix(spc_matrix_1[[df1_i]],spc_matrix_2[[df2_i]])]
+        row+=[similarities().text_similarity_on_matrix(spc_matrix_1[[df1_i]],spc_matrix_2[[df2_i]],method = "lavenshtein")]
+        row+=[similarities().text_similarity_on_matrix(spc_matrix_1[[df1_i]],spc_matrix_2[[df2_i]],method = "jaro_winkler")]
+        row+=[similarities().text_similarity_on_matrix(spc_matrix_1[[df1_i]],spc_matrix_2[[df2_i]],method = "jaccard")]
         X+=[np.hstack(row)]
     X = np.vstack(X)
     return X
