@@ -50,8 +50,6 @@ def divide_columns(df, special_columns=[]):
     t = 0
     for i in df.iloc[0].tolist():
     
-        print(i)
-        print(is_number(i))
         if type(i) == str:
             embeddings.append(t)
         #elif type(i) in [int, float, np.int64, np.float32]:
@@ -59,7 +57,6 @@ def divide_columns(df, special_columns=[]):
             numeric.append(t)
         t += 1
     
-    print(numeric)
     return numeric, special, embeddings
 
 
@@ -178,8 +175,8 @@ class Preprocessing():
 
         # process numeric columns
         if divide_col['numerical_cols']:
-            df1_numeric = df1.iloc[:, divide_col['numerical_cols']].as_matrix()
-            df2_numeric = df2.iloc[:, divide_col['numerical_cols']].as_matrix()
+            df1_numeric = df1.iloc[:, divide_col['numerical_cols']].as_matrix().astype(float) #some may still be in string type
+            df2_numeric = df2.iloc[:, divide_col['numerical_cols']].as_matrix().astype(float) #some may still be in string type
 
         else:
             df1_numeric = np.array([])
