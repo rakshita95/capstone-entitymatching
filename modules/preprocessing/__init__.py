@@ -6,6 +6,7 @@ from .word_embedding import df_to_embedding
 from .process_text import Process_text
 from .preprocess_special_columns import *
 from .process_text import Process_text
+from .preprocess_special_columns import preprocess_zipcode
 #sys.path.append('..')
 
 def is_number(s):
@@ -323,8 +324,16 @@ class Preprocessor():
 
         # process numeric columns
         if self.divide_col['numerical_cols']:
-            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix().astype(float) #some may still be in string type
-            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix().astype(float) #some may still be in string type
+        
+            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix() #some may still be in string type
+            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix() #some may still be in string type
+            
+            for i in self.divide_col['numerical_cols']:
+            
+                if df1.columns[i]==self.zip_code: # if is zipcode, which is included in numeric col, convert to float here
+            
+                    df1_numeric = df1.iloc[:,i].apply(preprocess_zipcode).as_matrix().astype(float)
+                    df2_numeric = df2.iloc[:,i].apply(preprocess_zipcode).as_matrix().astype(float)
 
         else:
             df1_numeric = np.array([])

@@ -39,6 +39,7 @@ train/test split on input dataset
 #random split inputs into train/test using original dataset
 df1_train, df1_test = train_test_split(df1, test_size=0.33, random_state=42)
 
+
 #set index dic
 df1_train_index = dict(zip(df1_train[df1_id], df1_train.reset_index().index))
 df1_test_index = dict(zip(df1_test[df1_id], df1_test.reset_index().index))
