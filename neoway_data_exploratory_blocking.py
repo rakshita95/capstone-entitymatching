@@ -14,7 +14,7 @@ read data
 '''
 df1 = pd.read_csv('data/companies_data_neoway/input.csv')
 df2 = pd.read_csv('data/companies_data_neoway/reference.csv')
-block = pd.read_csv('company_zipcode_blocked_test_test.csv')
+block = pd.read_csv('company_zipcode_blocked_test.csv')
 block = block.drop_duplicates() #in case there are duplicates in blocked.csv
 
 '''
@@ -24,6 +24,13 @@ df1_id = 'serial'
 df2_id = 'serial'
 match_id1 = 'serial_input' #corresponds to df1_id
 match_id2 = 'serial_reference' #corresponds to df2_id
+
+'''
+#uncomment this block when sampling on company_zipcode_blocked.csv
+block_inputs = block['input_serial'].unique()
+df1 = df1[df1[df1_id].isin(block_inputs)]
+df1 = df1.reset_index()
+'''
 
 '''
 train/test split on input dataset
