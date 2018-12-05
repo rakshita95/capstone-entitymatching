@@ -9,9 +9,15 @@ from .process_text import Process_text
 #sys.path.append('..')
 
 def is_number(s):
+    
+    if s != None:
+        s = re.sub(r'[^\w\s]', '', s) #remove punctuation; doesnt remove all special char, eg _"
+
     try:
-        float(s)
+    
+        float(s) #float('nan'),float('NaN'), etc exist
         return True
+    
     except ValueError:
         return False
 
@@ -30,7 +36,6 @@ def divide_columns(df, special_columns=[]):
     special = []
     
 
-    print(special_columns)
     if special_columns:
         if type(special_columns[0]) == str:
             for s in special_columns:
@@ -44,13 +49,17 @@ def divide_columns(df, special_columns=[]):
 
     t = 0
     for i in df.iloc[0].tolist():
+    
+        print(i)
+        print(is_number(i))
         if type(i) == str:
             embeddings.append(t)
         #elif type(i) in [int, float, np.int64, np.float32]:
-        elif is_number(i):
+        if is_number(i): #if also able to cast to numeric values, then also use it as a numeric column
             numeric.append(t)
         t += 1
-
+    
+    print(numeric)
     return numeric, special, embeddings
 
 
