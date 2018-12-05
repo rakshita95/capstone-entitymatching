@@ -42,7 +42,6 @@ df1_train, df1_test = train_test_split(df1, test_size=0.33, random_state=42)
 #set index dic
 df1_train_index = dict(zip(df1_train[df1_id], df1_train.reset_index().index))
 df1_test_index = dict(zip(df1_test[df1_id], df1_test.reset_index().index))
-df2_index = dict(zip(df2[df2_id], df2.reset_index().index))
 
 '''
 id column manipulation
@@ -64,15 +63,20 @@ block_test = block[block['input_serial'].isin(df1_test_id_col)]
 print("***preprocessing***")
 
 processor = Preprocessor(special_columns=['name','addressStreet'],zip_code='addressZip')
-processor.fit(df1_train,df2) #TODO: add fit_tansform function so no need to transform after fitting on training data
+processor.fit(df1_train,df2) #fitting on training dataset for input and on whole dataset for ref
+#TODO: add fit_tansform function so no need to transform after fitting on training data
 
 
 '''
 get numerical data
 '''
 print("***generate feature matrix***")
-count = 0
-def get_feature_matrix(df1,df2,df1_index,df2_index,block):
+
+def get_feature_matrix(df1,df2,df1_index,block):
+    count = 0
+    df2_bool = df2_id_col.isin(block['refer_serial'].unique()) #extract only relevant ref data
+    df2 = df2[df2_bool]
+    df2_index = dict(zip(df2_id_col[df2_bool], df2.reset_index().index)) #set index dic
     processed_data = processor.transform(df1,df2)
     num_matrix_1,num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
     embed_matrix_1,embed_matrix_2 = processed_data["word_embedding_fields"][0],processed_data["word_embedding_fields"][1]
@@ -88,17 +92,17 @@ def get_feature_matrix(df1,df2,df1_index,df2_index,block):
         row+=[similarities().text_similarity_on_matrix(spc_matrix_1[[df1_i]],spc_matrix_2[[df2_i]],method = "jaro_winkler")]
         row+=[similarities().text_similarity_on_matrix(spc_matrix_1[[df1_i]],spc_matrix_2[[df2_i]],method = "jaccard")]
         X+=[np.hstack(row)]
+        count += 1 #for checking progress
+        if count % 10000 == 0:
+            print("loop "+str(count))
+    
     X = np.vstack(X)
     
-    #for checking progress
-    count += 1
-    if count % 10000 == 0:
-        print("loop "+str(count))
     return X
 
-x_train = get_feature_matrix(df1_train,df2,df1_train_index,df2_index,block_train)
+x_train = get_feature_matrix(df1_train,df2,df1_train_index,block_train)
 print("***x_train done***")
-x_test = get_feature_matrix(df1_test,df2,df1_test_index,df2_index,block_test)
+x_test = get_feature_matrix(df1_test,df2,df1_test_index,block_test)
 print("***x_test done***")
 
 '''
@@ -107,10 +111,12 @@ save features
 import pickle
 with open('neoway_x_train_blocking.pkl', 'wb') as fid:
    pickle.dump(x_train, fid)
+
 print("***x_train saved***")
 
 with open('neoway_x_test_blocking.pkl', 'wb') as fid:
    pickle.dump(x_test, fid)
+
 print("***x_test saved***")
 
 

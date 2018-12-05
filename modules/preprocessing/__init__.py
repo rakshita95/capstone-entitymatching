@@ -9,9 +9,13 @@ from .process_text import Process_text
 #sys.path.append('..')
 
 def is_number(s):
-    
-    if s != None:
-        s = re.sub(r'[^\w\s]', '', s) #remove punctuation; doesnt remove all special char, eg _"
+
+    try: #nan values would pass but cannot use re.sub
+        if s != None:
+            s = re.sub(r'[^\w\s]', '', s) #remove punctuation; doesnt remove all special char, eg _"
+
+    except TypeError:
+        pass
 
     try:
     
@@ -28,8 +32,6 @@ def divide_columns(df, special_columns=[]):
     :param special_columns:
     :return:
     """
-
-    t = 0
 
     embeddings = []
     numeric = []
@@ -49,12 +51,12 @@ def divide_columns(df, special_columns=[]):
 
     t = 0
     for i in df.iloc[0].tolist():
-    
-        if type(i) == str:
-            embeddings.append(t)
+
         #elif type(i) in [int, float, np.int64, np.float32]:
-        if is_number(i): #if also able to cast to numeric values, then also use it as a numeric column
+        if is_number(i): #if able to cast to numeric values, then use it as a numeric column
             numeric.append(t)
+        else: #if not, then use word embeddings. later everything will be cast to string values
+            embeddings.append(t)
         t += 1
     
     return numeric, special, embeddings
@@ -277,7 +279,7 @@ class Preprocessor():
             raise ValueError('Got empty data.')
         
         if self.word_embed_fit_d1== None or self.word_embed_fit_d2== None:
-            raise ValueError('Please fit the processor first.')
+            raise ValueError('Please fit the preprocessor first.')
         
         #process word embeddings
         if self.divide_col["word_embedding_cols"]: #process only if both col lists are not empty
@@ -321,8 +323,8 @@ class Preprocessor():
 
         # process numeric columns
         if self.divide_col['numerical_cols']:
-            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix()
-            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix()
+            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix().astype(float) #some may still be in string type
+            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix().astype(float) #some may still be in string type
 
         else:
             df1_numeric = np.array([])
@@ -412,8 +414,12 @@ class Preprocessing_row():
 
     def overall_preprocess(self,df1=[],df2=[]): #df1 and df2 are both df with only one row
 
+
         if len(df1)==0 or len(df2)==0:
             raise ValueError('Got empty data.')
+        
+        if self.word_embed_fit_d1== None or self.word_embed_fit_d2== None:
+            raise ValueError('Please fit the preprocessor first.')
         
         #process word embeddings
         if self.divide_col["word_embedding_cols"]: #process only if both col lists are not empty
@@ -457,8 +463,8 @@ class Preprocessing_row():
 
         # process numeric columns
         if self.divide_col['numerical_cols']:
-            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix()
-            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix()
+            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix().astype(float) #some may still be in string type
+            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix().astype(float) #some may still be in string type
 
         else:
             df1_numeric = np.array([])
