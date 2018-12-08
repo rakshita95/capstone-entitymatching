@@ -94,7 +94,7 @@ def get_feature_matrix(df1,df2,df1_index,block):
         row+=[similarities().text_similarity_on_matrix(spc_matrix_1[[df1_i]],spc_matrix_2[[df2_i]],method = "jaccard")]
         X+=[np.hstack(row)]
         count += 1 #for checking progress
-        if count % 10000 == 0:
+        if count % 1000000 == 0:
             print("loop "+str(count))
     
     X = np.vstack(X)
@@ -109,16 +109,16 @@ print("***x_test done***")
 '''
 save features
 '''
-import pickle
-with open('neoway_x_train_blocking.pkl', 'wb') as fid:
-   pickle.dump(x_train, fid)
+np.save('neoway_x_train_blocking',x_train)
+#del x_train
 
 print("***x_train saved***")
 
-with open('neoway_x_test_blocking.pkl', 'wb') as fid:
-   pickle.dump(x_test, fid)
+np.save('neoway_x_test_blocking',x_test)
+#del x_test
 
 print("***x_test saved***")
+
 
 
 '''
@@ -219,8 +219,9 @@ print("\tAccuracy: {}".format(sum(y_pred_rf==y_test)/len(y_test)))
 
 
 # save the classifier
-with open('neoway_rf.pkl', 'wb') as fid:
-   pickle.dump(rf_random, fid)
+import pickle
+with open('neoway_rf_blocking.pkl', 'wb') as fid:
+   pickle.dump(rf_random, fid, protocol=4)
 
 print("***model saved***")
 

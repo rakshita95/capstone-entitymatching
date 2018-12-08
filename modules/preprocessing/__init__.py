@@ -325,15 +325,19 @@ class Preprocessor():
         # process numeric columns
         if self.divide_col['numerical_cols']:
         
-            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix() #some may still be in string type
-            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix() #some may still be in string type
+            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].copy() #some may still be in string type
+            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].copy() #some may still be in string type
             
-            for i in self.divide_col['numerical_cols']:
+            for counter, value in enumerate(self.divide_col['numerical_cols']):
             
-                if df1.columns[i]==self.zip_code: # if is zipcode, which is included in numeric col, convert to float here
+                if df1.columns[value]==self.zip_code: # if is zipcode, which is included in numeric col, preprocess as zipcode here
             
-                    df1_numeric = df1.iloc[:,i].apply(preprocess_zipcode).as_matrix().astype(float)
-                    df2_numeric = df2.iloc[:,i].apply(preprocess_zipcode).as_matrix().astype(float)
+                    df1_numeric.iloc[:,counter] = df1_numeric.iloc[:,counter].apply(preprocess_zipcode)
+                    df2_numeric.iloc[:,counter] = df2_numeric.iloc[:,counter].apply(preprocess_zipcode)
+            
+            df1_numeric = df1_numeric.as_matrix().astype(float)
+            df2_numeric = df2_numeric.as_matrix().astype(float)
+            
 
         else:
             df1_numeric = np.array([])
