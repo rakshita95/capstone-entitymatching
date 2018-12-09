@@ -162,48 +162,50 @@ x_test[inds_test]=np.take(col_means, inds_test[1])
 # x_train_new = np.vstack((x_maj, x_min_upsampled))
 # y_train_new = np.hstack((np.zeros(x_maj.shape[0]), np.ones(x_maj.shape[0])))
 
-# # CV
-# # Number of trees in random forest
-# # n_estimators = [int(x) for x in np.linspace(start = 100, stop = 1000, num = 10)]
-# n_estimators=[300]
-# # Number of features to consider at every split
-# max_features = ['sqrt']
-# # Maximum number of levels in tree
-# max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
-# max_depth.append(None)
-# # Minimum number of samples required to split a node
-# min_samples_split = [2, 5, 10]
-# # Minimum number of samples required at each leaf node
-# min_samples_leaf = [1, 2, 4]
-# # Method of selecting samples for training each tree
-# bootstrap = [True, False]
-# # Create the random grid
-# random_grid = {'n_estimators': n_estimators,
-#                'max_features': max_features,
-#                'max_depth': max_depth,
-#                'min_samples_split': min_samples_split,
-#                'min_samples_leaf': min_samples_leaf,
-#                'bootstrap': bootstrap}
-# print(random_grid)
-# # Use the random grid to search for best hyperparameters
-# rf = RandomForestClassifier()
-# # Random search of parameters and use all available cores
-# random_search = RandomizedSearchCV(estimator=rf,
-#                                param_distributions=random_grid,
-#                                n_iter=100,
-#                                cv=3, verbose=2, random_state=42,
-#                                n_jobs=-1, scoring='f1')
-# random_search.fit(x_train, y_train)
-# print(random_search.best_params_)
-# print("\tMean CV f1-score : %1.3f" % random_search.best_score_ )
+# CV
+# Number of trees in random forest
+# n_estimators = [int(x) for x in np.linspace(start = 100, stop = 1000, num = 10)]
+n_estimators=[300]
+# Number of features to consider at every split
+max_features = ['sqrt']
+# Maximum number of levels in tree
+max_depth = [int(x) for x in np.linspace(50, 100, num = 6)]
+max_depth.append(None)
+# Minimum number of samples required to split a node
+min_samples_split = [2, 5, 10]
+# Minimum number of samples required at each leaf node
+min_samples_leaf = [1, 2, 4]
+# Method of selecting samples for training each tree
+bootstrap = [True, False]
+# Class weights for class imbalance issue
+class_weight = [None, "balanced", "balanced_subsample"]
+# Create the random grid
+random_grid = {'n_estimators': n_estimators,
+               'max_features': max_features,
+               'max_depth': max_depth,
+               'min_samples_split': min_samples_split,
+               'min_samples_leaf': min_samples_leaf,
+               'bootstrap': bootstrap,
+               'class_weight': class_weight}
+print(random_grid)
+# Use the random grid to search for best hyperparameters
+rf = RandomForestClassifier()
+# Random search of parameters and use all available cores
+random_search = RandomizedSearchCV(estimator=rf,
+                               param_distributions=random_grid,
+                               n_iter=100,
+                               cv=3, verbose=2, random_state=42,
+                               n_jobs=-1, scoring='f1')
+random_search.fit(x_train, y_train)
+print(random_search.best_params_)
+print("\tMean CV f1-score : %1.3f" % random_search.best_score_ )
 # fit
-
-# rf_random = random_search.best_estimator_
-rf_random = RandomForestClassifier(n_estimators=300,
-                                   min_samples_split=5,
-                                   min_samples_leaf=1,
-                                   max_features='sqrt', max_depth=90,
-                                   bootstrap=True, random_state=42, n_jobs=-1)
+rf_random = random_search.best_estimator_
+#rf_random = RandomForestClassifier(n_estimators=300,
+#                                   min_samples_split=5,
+#                                   min_samples_leaf=1,
+#                                   max_features='sqrt', max_depth=90,
+#                                   bootstrap=True, random_state=42)
 rf_random.fit(x_train, y_train)
 # predict
 y_pred_rf = rf_random.predict(x_test)

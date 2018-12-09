@@ -49,6 +49,8 @@ def preprocess_zipcode(zipcode):
 
     zipcode = str(zipcode)
     zipcode = zipcode.split("-")[0]
+    zipcode = re.sub(r"[^0-9]","",zipcode) #extract only numeric characters
+    
     return zipcode
 
 
