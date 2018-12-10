@@ -6,12 +6,23 @@ from .word_embedding import df_to_embedding
 from .process_text import Process_text
 from .preprocess_special_columns import *
 from .process_text import Process_text
+from .preprocess_special_columns import preprocess_zipcode
 #sys.path.append('..')
 
 def is_number(s):
+
+    try: #nan values would pass but cannot use re.sub
+        if s != None:
+            s = re.sub(r'[^\w\s]', '', s) #remove punctuation; doesnt remove all special char, eg _"
+
+    except TypeError:
+        pass
+
     try:
-        float(s)
+    
+        float(s) #float('nan'),float('NaN'), etc exist
         return True
+    
     except ValueError:
         return False
 
@@ -23,11 +34,10 @@ def divide_columns(df, special_columns=[]):
     :return:
     """
 
-    t = 0
-
     embeddings = []
     numeric = []
     special = []
+    
 
     if special_columns:
         if type(special_columns[0]) == str:
@@ -38,17 +48,18 @@ def divide_columns(df, special_columns=[]):
             special = special_columns
     else:
         special = []
+        
 
     t = 0
+    for i in df.iloc[0].tolist():
 
-    for i in df.loc[0].tolist():
-        if type(i) == str:
-            embeddings.append(t)
         #elif type(i) in [int, float, np.int64, np.float32]:
-        elif is_number(i):
+        if is_number(i): #if able to cast to numeric values, then use it as a numeric column
             numeric.append(t)
+        else: #if not, then use word embeddings. later everything will be cast to string values
+            embeddings.append(t)
         t += 1
-
+    
     return numeric, special, embeddings
 
 
@@ -62,8 +73,9 @@ class Preprocessing():
 
     def overall_preprocess(self,df1,df2,
                            special_columns=[],
-                           phone_number=[],
-                           address_columns = [],
+                           phone_number=None,
+                           address_columns=[],
+                           zip_code=None,
                            geocode_address=False,
                            api_key=None,
                            word_embedding_model="word2vec",
@@ -86,11 +98,13 @@ class Preprocessing():
         :param word_embedding_path: str | path to the embedding dictionary, if None, use default dataset
         :return: dict | a dictionary of np.arrays with the three values
         """
-
-        s = set(special_columns)
-        s.update(address_columns)
-        s.update(phone_number)
-        special_columns = list(s)
+    
+        special_columns += address_columns
+        if phone_number:
+            special_columns += [phone_number]
+        if zip_code:
+            special_columns += [zip_code]
+        
 
         divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
@@ -139,12 +153,14 @@ class Preprocessing():
                                                     divide_col['special_field_cols']],
                                                     phone_number,
                                                     address_columns,
+                                                    zip_code,
                                                     geocode_address,
                                                     api_key)
             df2_special, lat2,long2 = preprocess_special_fields(df2.iloc[:,
                                                     divide_col['special_field_cols']],
                                                     phone_number,
                                                     address_columns,
+                                                    zip_code,
                                                     geocode_address,
                                                     api_key)
 
@@ -162,8 +178,19 @@ class Preprocessing():
 
         # process numeric columns
         if divide_col['numerical_cols']:
-            df1_numeric = df1.iloc[:, divide_col['numerical_cols']].as_matrix()
-            df2_numeric = df2.iloc[:, divide_col['numerical_cols']].as_matrix()
+        
+            df1_numeric = df1.iloc[:, divide_col['numerical_cols']].copy() #some may still be in string type
+            df2_numeric = df2.iloc[:, divide_col['numerical_cols']].copy() #some may still be in string type
+            
+            for counter, value in enumerate(divide_col['numerical_cols']):
+            
+                if df1.columns[value]==zip_code: # if is zipcode, which is included in numeric col, preprocess as zipcode here
+            
+                    df1_numeric.iloc[:,counter] = df1_numeric.iloc[:,counter].apply(preprocess_zipcode)
+                    df2_numeric.iloc[:,counter] = df2_numeric.iloc[:,counter].apply(preprocess_zipcode)
+            
+            df1_numeric = df1_numeric.as_matrix().astype(float)
+            df2_numeric = df2_numeric.as_matrix().astype(float)
 
         else:
             df1_numeric = np.array([])
@@ -198,20 +225,24 @@ def load_word_embedding_model(word_embedding_model="word2vec",word_embedding_pat
 class Preprocessor():
     def __init__(self,word_embedding_model_instance=None,
                  special_columns=[],
-                 phone_number=[],
+                 phone_number=None,
                  address_columns=[],
+                 zip_code=None,
                  geocode_address=False,
                  api_key=None,
                  embedding_weight='tfidf'):
         
         self.phone_number=phone_number
         self.address_columns=address_columns
+        self.zip_code=zip_code
         self.geocode_address=geocode_address
         self.api_key=api_key
-        s = set(special_columns)
-        s.update(address_columns)
-        s.update(phone_number)
-        self.special_columns = list(s)
+        self.special_columns = special_columns
+        self.special_columns += self.address_columns
+        if self.phone_number:
+            self.special_columns += [self.phone_number]
+        if self.zip_code:
+            self.special_columns += [self.zip_code]
 
         self.divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
@@ -225,7 +256,7 @@ class Preprocessor():
         
 
     def fit(self,df1_to_fit=[],df2_to_fit=[]):
-    
+
         n, s, w = divide_columns(df1_to_fit, self.special_columns)
         self.divide_col['numerical_cols'] = n
         self.divide_col['special_field_cols'] = s
@@ -260,7 +291,7 @@ class Preprocessor():
             raise ValueError('Got empty data.')
         
         if self.word_embed_fit_d1== None or self.word_embed_fit_d2== None:
-            raise ValueError('Please fit the processor first.')
+            raise ValueError('Please fit the preprocessor first.')
         
         #process word embeddings
         if self.divide_col["word_embedding_cols"]: #process only if both col lists are not empty
@@ -279,12 +310,14 @@ class Preprocessor():
                                                     self.divide_col['special_field_cols']],
                                                     self.phone_number,
                                                     self.address_columns,
+                                                    self.zip_code,
                                                     self.geocode_address,
                                                     self.api_key)
             df2_special, lat2,long2 = preprocess_special_fields(df2.iloc[:,
                                                     self.divide_col['special_field_cols']],
                                                     self.phone_number,
                                                     self.address_columns,
+                                                    self.zip_code,
                                                     self.geocode_address,
                                                     self.api_key)
 
@@ -302,9 +335,20 @@ class Preprocessor():
 
         # process numeric columns
         if self.divide_col['numerical_cols']:
-            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix()
-            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix()
-
+        
+            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].copy() #some may still be in string type
+            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].copy() #some may still be in string type
+            
+            for counter, value in enumerate(self.divide_col['numerical_cols']):
+            
+                if df1.columns[value]==self.zip_code: # if is zipcode, which is included in numeric col, preprocess as zipcode here
+            
+                    df1_numeric.iloc[:,counter] = df1_numeric.iloc[:,counter].apply(preprocess_zipcode)
+                    df2_numeric.iloc[:,counter] = df2_numeric.iloc[:,counter].apply(preprocess_zipcode)
+            
+            df1_numeric = df1_numeric.as_matrix().astype(float)
+            df2_numeric = df2_numeric.as_matrix().astype(float)
+        
         else:
             df1_numeric = np.array([])
             df2_numeric = np.array([])
@@ -322,8 +366,9 @@ class Preprocessor():
 class Preprocessing_row():
     def __init__(self,df1_to_fit=[],df2_to_fit=[],
                  special_columns=[],
-                 phone_number=[],
+                 phone_number=None,
                  address_columns=[],
+                 zip_code=None,
                  geocode_address=False,
                  api_key=None,
                  word_embedding_model="word2vec",
@@ -335,13 +380,15 @@ class Preprocessing_row():
         
         self.phone_number=phone_number
         self.address_columns=address_columns
+        self.zip_code=zip_code
         self.geocode_address=geocode_address
         self.api_key=api_key
-    
-        s = set(special_columns)
-        s.update(address_columns)
-        s.update(phone_number)
-        special_columns = list(s)
+        self.special_columns = special_columns
+        self.special_columns += self.address_columns
+        if self.phone_number:
+            self.special_columns += [self.phone_number]
+        if self.zip_code:
+            self.special_columns += [self.zip_code]
 
         self.divide_col = {"numerical_cols": [],
                       "special_field_cols":[],
@@ -390,8 +437,12 @@ class Preprocessing_row():
 
     def overall_preprocess(self,df1=[],df2=[]): #df1 and df2 are both df with only one row
 
+
         if len(df1)==0 or len(df2)==0:
             raise ValueError('Got empty data.')
+        
+        if self.word_embed_fit_d1== None or self.word_embed_fit_d2== None:
+            raise ValueError('Please fit the preprocessor first.')
         
         #process word embeddings
         if self.divide_col["word_embedding_cols"]: #process only if both col lists are not empty
@@ -410,12 +461,14 @@ class Preprocessing_row():
                                                     self.divide_col['special_field_cols']],
                                                     self.phone_number,
                                                     self.address_columns,
+                                                    self.zip_code,
                                                     self.geocode_address,
                                                     self.api_key)
             df2_special, lat2,long2 = preprocess_special_fields(df2.iloc[:,
                                                     self.divide_col['special_field_cols']],
                                                     self.phone_number,
                                                     self.address_columns,
+                                                    self.zip_code,
                                                     self.geocode_address,
                                                     self.api_key)
 
@@ -433,8 +486,19 @@ class Preprocessing_row():
 
         # process numeric columns
         if self.divide_col['numerical_cols']:
-            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].as_matrix()
-            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].as_matrix()
+        
+            df1_numeric = df1.iloc[:, self.divide_col['numerical_cols']].copy() #some may still be in string type
+            df2_numeric = df2.iloc[:, self.divide_col['numerical_cols']].copy() #some may still be in string type
+            
+            for counter, value in enumerate(self.divide_col['numerical_cols']):
+            
+                if df1.columns[value]==self.zip_code: # if is zipcode, which is included in numeric col, preprocess as zipcode here
+            
+                    df1_numeric.iloc[:,counter] = df1_numeric.iloc[:,counter].apply(preprocess_zipcode)
+                    df2_numeric.iloc[:,counter] = df2_numeric.iloc[:,counter].apply(preprocess_zipcode)
+            
+            df1_numeric = df1_numeric.as_matrix().astype(float)
+            df2_numeric = df2_numeric.as_matrix().astype(float)
 
         else:
             df1_numeric = np.array([])

@@ -13,6 +13,7 @@ This script calls functions from modules and completes a whole run for the googl
 ## Concatenate previous results to form the final dataset for modeling
 ## Call modeling functions (train test split etc)
 
+
 import sys
 sys.path.append('..')
 sys.path.append('/anaconda/lib/python3.6/site-packages')
@@ -26,17 +27,17 @@ from sklearn.model_selection import train_test_split
 '''
 read data
 '''
-df1 = pd.read_csv('data/companies_data_neoway_subsample/reference.csv')
-df2 = pd.read_csv('data/companies_data_neoway_subsample/input.csv')
-match_df = pd.read_csv('data/companies_data_neoway_subsample/match.csv')
+df1 = pd.read_csv("data/acm_dblp/sample/acm_sample.csv")
+df2 = pd.read_csv("data/acm_dblp/sample/dblp_sample.csv")
+match_df = pd.read_csv("data/acm_dblp/sample/acm_dblp_sample_match.csv")
 
 '''
 specify id names
 '''
-df1_id = 'serial'
-df2_id = 'serial'
-match_id1 = 'serial_reference' #corresponds to df1_id
-match_id2 = 'serial_input' #corresponds to df2_id
+df1_id = 'id'
+df2_id = 'id'
+match_id1 = 'idACM' # corresponds to df1_id
+match_id2 = 'idDBLP' # corresponds to df2_id
 
 '''
 id column manipulation
@@ -53,15 +54,13 @@ df2 = df2.drop(columns = [df2_id])
 preprocess both dataframes
 '''
 processed_data = Preprocessing().overall_preprocess(df1, df2,
-                                                    special_columns=['name','addressStreet'],
-                                                    zip_code = "addressZip",
-                                                    embedding_weight='tfidf')
-                                                   # may take a while bc loading pretrained word embedding model
+                                                    special_columns=['title', 'authors', 'venue'],
+                                                    embedding_weight='tfidf') # may take a while bc loading pretrained word embedding model
 
 '''
 get numerical data
 '''
-# need fix addressZip and not to see it as numeric
+
 num_matrix_1, num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
 embed_matrix_1, embed_matrix_2 = processed_data["word_embedding_fields"][0],processed_data["word_embedding_fields"][1]
 spc_matrix_1, spc_matrix_2 = processed_data["special_fields"][0],processed_data["special_fields"][1]
@@ -69,6 +68,7 @@ spc_matrix_1, spc_matrix_2 = processed_data["special_fields"][0],processed_data[
 '''
 calculate similarities
 '''
+
 num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
 embed_tfidf_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
 #embed_mean_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
@@ -76,14 +76,13 @@ embed_tfidf_data = similarities().vector_similarity_on_matrix(embed_matrix_1,emb
 #embed_max_data = similarities().vector_similarity_on_matrix(embed_matrix_1,embed_matrix_2)
 spc_final_data = similarities().text_similarity_on_matrix(spc_matrix_1,spc_matrix_2)
 
-
 '''
 concatenate all data
 '''
 # only concatenate non-empty similarity matrices
 non_empty = []
 
-for m in num_final_data, spc_final_data,embed_tfidf_data:#, embed_min_data, embed_max_data:#, embed_mean_data,embed_tfidf_data#:
+for m in num_final_data, spc_final_data, embed_tfidf_data:#, embed_mean_data, embed_min_data, embed_max_data:
     if m.size !=0:
         non_empty.append(m)
 
@@ -94,20 +93,18 @@ print(x.shape)
 '''
 train test split
 '''
-
 # generate y labels
 y = gen_labels(df1_id_col, df2_id_col, match_df, match_id1, match_id2)
 
 # simple check to see if x and y match in size
-print(y.shape[0] == x.shape[0])
+print (y.shape[0] == x.shape[0])
 print(y.sum() == match_df.shape[0])
 
-
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.33, stratify = y, random_state=42)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.33, stratify = y,random_state=42)
 
 precision = []
 recall = []
-f1_scorel = []
+f1 = []
 accuracy = []
 test_size = [0.7, 0.6, 0.5, 0.4, 0.3, 0.2]
 for split in test_size:
@@ -123,24 +120,23 @@ for split in test_size:
     rf_random = RandomForestClassifier(n_estimators=300,
                                        min_samples_split=5,
                                        min_samples_leaf=1,
-                                       max_features='sqrt', max_depth=90,
-                                       bootstrap=True, random_state=42)
+                                       max_features='sqrt', max_depth=100,
+                                       bootstrap=False, random_state=42)
     rf_random.fit(x_train, y_train)
     y_pred = rf_random.predict(x_test)
     precision.append(precision_score(y_test, y_pred))
     recall.append(recall_score(y_test, y_pred))
-    f1_scorel.append(f1_score(y_test, y_pred))
+    f1.append(f1_score(y_test, y_pred))
     accuracy.append(sum(y_pred == y_test) / len(y_test))
 
 plt.figure()
 plt.plot([int((1-x)*len(y)) for x in test_size], recall, label='recall')
-plt.plot([int((1-x)*len(y)) for x in test_size], f1_scorel, label='f1_score')
+plt.plot([int((1-x)*len(y)) for x in test_size], f1, label='f1_score')
 plt.xlabel('Number of training samples')
 plt.ylabel('Performance')
 plt.title('Total number of samples = '+str(len(y)))
-plt.suptitle('Neoway')
+plt.suptitle('Bibliographic')
 plt.legend()
-
 
 '''
 modeling
@@ -208,6 +204,17 @@ rf_random = random_search.best_estimator_
 #                                   min_samples_leaf=1,
 #                                   max_features='sqrt', max_depth=90,
 #                                   bootstrap=True, random_state=42)
+random_search.fit(x_train, y_train)
+print(random_search.best_params_)
+print("\tMean CV f1-score : %1.3f" % random_search.best_score_ )
+# fit
+
+# rf_random = random_search.best_estimator_
+rf_random = RandomForestClassifier(n_estimators=300,
+                                   min_samples_split=5,
+                                   min_samples_leaf=1,
+                                   max_features='sqrt', max_depth=100,
+                                   bootstrap=False, random_state=42)
 rf_random.fit(x_train, y_train)
 # predict
 y_pred_rf = rf_random.predict(x_test)
@@ -221,8 +228,7 @@ print("\tRecall: %1.3f" % recall_score(y_test, y_pred_rf))
 print("\tF1: %1.3f" % f1_score(y_test, y_pred_rf))
 print("\tAccuracy: {}".format(sum(y_pred_rf==y_test)/len(y_test)))
 
-# print(cross_val_score(lasso, X, y, cv=3))
-import sklearn
+
 dt = sklearn.tree.DecisionTreeClassifier().fit(x_train,y_train)
 # predict
 y_pred_dt = dt.predict(x_test)
