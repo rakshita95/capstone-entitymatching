@@ -162,7 +162,25 @@ class Transform(Dataset):
 
 train_dataset = Transform(sim_train, desc_train.to_dict('records'), y_train,
                           word2idx)
-train_sampler = torch.utils.data.sampler.RandomSampler(train_dataset)
+# train_sampler = torch.utils.data.sampler.RandomSampler(train_dataset)
+class_sample_count = [len(np.where(y_train==0)[0]),len(np.where(y_train==1)[0])]
+print(class_sample_count)
+weights = 1 / torch.Tensor(class_sample_count)
+samples_weight = np.array([weights[t] for t in y_train])
+samples_weight = torch.from_numpy(samples_weight)
+train_sampler = torch.utils.data.sampler.WeightedRandomSampler(
+    samples_weight.double(),
+    len(samples_weight)) # len(y_train)
+# trainloader = data_utils.DataLoader(train_dataset, batch_size = batch_size, shuffle=True, sampler = sampler)
+
+# lass_sample_count = np.array([len(np.where(y_train==t)[0]) for t in np.unique(y_train)])
+# weight = 1. / class_sample_count
+# samples_weight = np.array([weight[t] for t in y_train])
+#
+# samples_weight = torch.from_numpy(samples_weight)
+# sampler = WeightedRandomSampler(samples_weight.type('torch.DoubleTensor'), len(samples_weight))
+
+
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, sampler=train_sampler, num_workers=5,
     pin_memory=True)
@@ -232,15 +250,16 @@ class Model(nn.Module):
         # self.rnnbi2 = nn.LSTM(input_size=300, hidden_size=50, bidirectional=True)
 
         self.fcn1 = nn.Sequential(
-            nn.Linear(103, 100),  # 53
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.2))  # nn.Dropout(0.2) nn.Linear(100, 1),
+            nn.Linear(203, 100),  # 53
+            nn.ReLU(inplace=True))  # nn.Dropout(0.2) nn.Linear(100, 1),
         # self.merge_fcn1.weight.data.normal_()
 
-        self.final_fcn = nn.Sequential(
-            nn.Linear(100, 2),
-            nn.Dropout(0.2))  # nn.Dropout(0.2) nn.Linear(100, 1), nn.ReLU(inplace=True),
+        # self.final_fcn = nn.Sequential(
+        #     nn.Linear(100, 1),
+        #     nn.Sigmoid(inplace=True))  # nn.Dropout(0.2) nn.Linear(100, 1), nn.ReLU(inplace=True),
         # self.final_fcn.weight.data.normal_() nn.ReLU(inplace=True),
+        self.out = nn.Linear(100, 1)
+        self.out_act = nn.Sigmoid()
 
 
 
@@ -264,13 +283,14 @@ class Model(nn.Module):
         # print(type(sim))
         # print(type(desc1_encoded - desc2_encoded))
         sim_added = torch.cat([merged_state1 - merged_state2,
+                               merged_state1 * merged_state2,
                               sim.float()], 1)
         # print("final: ", sim_added.size())
 
         output = self.fcn1(sim_added)
 
-        final = self.final_fcn(output)
-        #        print(final.size())
+        final = self.out_act(self.out(output))
+        # print(final.size())
         return final
 
 
@@ -284,7 +304,8 @@ optimizer = optim.Adam(matcher.parameters())
 # optimizer = optim.SGD(reader.parameters(), lr = 0.05)
 # torch.cuda.set_device(-1)
 # model_name = 'with_topics_best'
-loss_func = nn.CrossEntropyLoss()
+loss_func = nn.BCELoss()
+# loss_func = nn.CrossEntropyLoss()
 
 for m in matcher.modules():
     if isinstance(m, nn.Linear):
@@ -304,7 +325,7 @@ def validate(data_loader, network):
         # Predicting....
         network.eval()
 
-        matcher.train()
+        # matcher.train()
         desc1_idx = Variable(ex[0])
         desc2_idx = Variable(ex[1])
         sim = Variable(ex[2])
@@ -317,15 +338,19 @@ def validate(data_loader, network):
 
         output = network(desc1_embed, desc2_embed, sim)
 
-        _, pred = torch.max(output, 1)
+        # _, pred = torch.max(output, 1)
+        # print((output>0.5).int())
+        pred = (output.squeeze() > 0.5).int()
+        # print(pred)
         truth.append(list(actual.data))
         prediction.append(list(pred.data))
-        correct += (pred.data == actual.data).sum()
+        correct += (pred.data == actual.data.int()).sum()
 
         examples += batch_size
 
     truth_flat = [item for sublist in truth for item in sublist]
     pred_flat = [item for sublist in prediction for item in sublist]
+    # print(sum(truth_flat))
 
     f1 = f1_score(truth_flat, pred_flat)
     recall = recall_score(truth_flat, pred_flat)
@@ -343,15 +368,18 @@ train_list = []
 test_list = []
 
 for epoch in range(0, num_epochs):
+# for epoch in range(10, 50):
     train_loss = 0
     for idx, sample in enumerate(train_loader):
 
         matcher.train()
+        # print('batch_size=', sample[0].size(0))
         desc1_idx = Variable(sample[0])
         desc2_idx = Variable(sample[1])
         sim = Variable(sample[2])
         actual = Variable(sample[3])
-
+        if epoch ==1:
+            print(np.unique(sample[3], return_counts=True))
         desc1_embed = emb_layer(desc1_idx.squeeze())
         desc2_embed = emb_layer(desc2_idx.squeeze())
         # ques622_embed = emb_layer(ques622.repeat(ans622.size()[0], 1))
@@ -360,7 +388,7 @@ for epoch in range(0, num_epochs):
         pred = matcher(desc1_embed, desc2_embed, sim)
 
 
-        loss = loss_func(pred, actual)
+        loss = loss_func(pred.squeeze(), actual.float())
         optimizer.zero_grad()  # set gradients to zero for each iteration
         loss.backward()  # backpropagate
         optimizer.step()  # update parameters
@@ -374,11 +402,13 @@ for epoch in range(0, num_epochs):
             print("Epoch", epoch + 1, "Batch-step", idx, "\t/",
                   len(train_loader), "\tloss", loss.data[0])
             train_loss = 0
-
+    # break
     val_acc, val_f1, val_recall = validate(dev_loader, matcher)
     train_acc, train_f1, train_recall = validate(train_loader, matcher)
     print(val_acc)
     print(train_acc)
+    print(val_f1)
+    print(train_f1)
     test_list.append(val_f1)
     train_list.append(train_f1)
 
@@ -386,7 +416,7 @@ epoch_list = list(range(0, num_epochs))
 
 import matplotlib.pyplot as plt
 
-plt.plot(epoch_list, test_list, 'r', label='test')
+# plt.plot(epoch_list, test_list, 'r', label='test')
 plt.plot(epoch_list, train_list, 'g', label='train')
 plt.title('f1-score vs epoch')
 plt.legend()
