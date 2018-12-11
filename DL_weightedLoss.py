@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed May  9 21:40:47 2018
-
-@author: rakshitanagalla
-"""
-
 import sys
 sys.path.append('..')
 sys.path.append('/anaconda/lib/python3.6/site-packages')
@@ -80,12 +72,13 @@ df2_id_col = df2[df2_id]
 df1 = df1.drop(columns=[df1_id])
 df2 = df2.drop(columns=[df2_id])
 
-processed_data = Preprocessing().overall_preprocess(df1.drop(columns=['description']), df2.drop(columns=['description']),
-                                                    special_columns=['title','manufacturer'],
-                                                    word_embedding_model='none') # may take a while bc loading pretrained word embedding model
+processed_data = Preprocessing().overall_preprocess(
+    df1.drop(columns=['description']), df2.drop(columns=['description']),
+    special_columns=['title', 'manufacturer'],
+    word_embedding_model='none') # may take a while bc loading pretrained word embedding model
 
-num_matrix_1, num_matrix_2 = processed_data["numerical"][0],processed_data["numerical"][1]
-spc_matrix_1, spc_matrix_2 = processed_data["special_fields"][0],processed_data["special_fields"][1]
+num_matrix_1, num_matrix_2 = processed_data["numerical"][0], processed_data["numerical"][1]
+spc_matrix_1, spc_matrix_2 = processed_data["special_fields"][0], processed_data["special_fields"][1]
 num_final_data = similarities().numerical_similarity_on_matrix(num_matrix_1,num_matrix_2)
 spc_final_data = similarities().text_similarity_on_matrix(spc_matrix_1,spc_matrix_2,method='jaccard')
 
@@ -104,14 +97,23 @@ for m in num_final_data, spc_final_data:#, embed_mean_data, embed_max_data, embe
 
 sim = np.concatenate([i for i in non_empty], axis = 1)
 y = gen_labels(df1_id_col, df2_id_col, match_df, 'idAmazon', 'idGoogleBase')
-sim_train, sim_test, y_train, y_test = train_test_split(sim, y, test_size = 0.33, stratify = y, random_state=42)
+# sim_train, sim_test, y_train, y_test = train_test_split(sim, y, test_size = 0.33, stratify = y, random_state=42)
 sim_train, sim_test, y_train, y_test, desc_train, desc_test = train_test_split(
                      sim,
                      y, merged,
                      test_size=0.33,
                      stratify=y,
                      random_state=42)
-
+print(sum(y_train), sum(y_test))
+print(len(y_train), len(y_test))
+sim_dev, sim_finaltest, y_dev, y_finaltest, desc_dev, desc_finaltest = train_test_split(
+                     sim_test,
+                     y_test, desc_test,
+                     test_size=3000,
+                     stratify=y_test,
+                     random_state=42)
+print(sum(y_finaltest), sum(y_dev))
+print(len(y_finaltest), len(y_dev))
 max_desc1_len = max([len(x) for x in merged['description_x']])
 max_desc2_len = max([len(x) for x in merged['description_y']])
 # max474len = max([len(x.strip().split()) for x in train_df['Q6.33']])
@@ -127,8 +129,8 @@ class Transform(Dataset):
         self.desc = description
         self.label = label
         self.word2idx = word2idx
-        self.max_len_desc1 = 50#1989
-        self.max_len_desc2 = 50#42
+        self.max_len_desc1 = 219#219-1989
+        self.max_len_desc2 = 42#42-42
 
     def __len__(self):
         return len(self.label)#+len(self.desc)+len(self.sim)
@@ -142,9 +144,9 @@ class Transform(Dataset):
         desc1_idx1 = [self.word2idx.get(word, 1) for word in desc1]
         desc2_idx1 = [self.word2idx.get(word, 1) for word in desc2]
 
-        if len(desc1_idx1) > 50:
+        if len(desc1_idx1) > self.max_len_desc1:
             desc1_idx1 = desc1_idx1[:50]
-        if len(desc2_idx1) > 50:
+        if len(desc2_idx1) > self.max_len_desc1:
             desc2_idx1 = desc2_idx1[:50]
 
         # Zero pad
@@ -162,30 +164,28 @@ class Transform(Dataset):
 
 train_dataset = Transform(sim_train, desc_train.to_dict('records'), y_train,
                           word2idx)
-# train_sampler = torch.utils.data.sampler.RandomSampler(train_dataset)
-class_sample_count = [len(np.where(y_train==0)[0]),len(np.where(y_train==1)[0])]
-print(class_sample_count)
-weights = 1 / torch.Tensor(class_sample_count)
-samples_weight = np.array([weights[t] for t in y_train])
-samples_weight = torch.from_numpy(samples_weight)
-train_sampler = torch.utils.data.sampler.WeightedRandomSampler(
-    samples_weight.double(),
-    len(samples_weight)) # len(y_train)
-# trainloader = data_utils.DataLoader(train_dataset, batch_size = batch_size, shuffle=True, sampler = sampler)
-
-# lass_sample_count = np.array([len(np.where(y_train==t)[0]) for t in np.unique(y_train)])
-# weight = 1. / class_sample_count
-# samples_weight = np.array([weight[t] for t in y_train])
-#
-# samples_weight = torch.from_numpy(samples_weight)
-# sampler = WeightedRandomSampler(samples_weight.type('torch.DoubleTensor'), len(samples_weight))
-
-
+train_sampler = torch.utils.data.sampler.RandomSampler(train_dataset)
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, sampler=train_sampler, num_workers=5,
     pin_memory=True)
 
-dev_dataset = Transform(sim_test, desc_test.to_dict('records'), y_test,
+# train_dataset = Transform(sim_train, desc_train.to_dict('records'), y_train,
+#                           word2idx)
+# class_sample_count = [len(np.where(y_train == 0)[0]),
+#                       len(np.where(y_train == 1)[0])]
+# print(class_sample_count)
+# weights = 1 / torch.Tensor(class_sample_count)
+# samples_weight = np.array([weights[t] for t in y_train])
+# samples_weight = torch.from_numpy(samples_weight)
+# train_sampler = torch.utils.data.sampler.WeightedRandomSampler(
+#     samples_weight.double(),
+#     len(samples_weight)) # len(y_train)
+# train_loader = torch.utils.data.DataLoader(
+#     train_dataset, batch_size=batch_size, sampler=train_sampler, num_workers=5,
+#     pin_memory=True)
+
+
+dev_dataset = Transform(sim_dev, desc_dev.to_dict('records'), y_dev,
                         word2idx)  # feature2idx,
 dev_sampler = torch.utils.data.sampler.SequentialSampler(dev_dataset)
 dev_loader = torch.utils.data.DataLoader(
@@ -238,7 +238,6 @@ emb_layer.weight.requires_grad = False
 Model Definition
 '''
 
-
 class Model(nn.Module):
 
     def __init__(self):
@@ -246,20 +245,21 @@ class Model(nn.Module):
 
         self.rnn1 = nn.LSTM(input_size=300, hidden_size=50, bidirectional=True,
                             num_layers=1) # for entity1
+        self.rnn2 = nn.LSTM(input_size=300, hidden_size=50, bidirectional=True,
+                            num_layers=1)  # for entity1
         # self.rnn2 = nn.LSTM(input_size=300, hidden_size=50) # for entity2
         # self.rnnbi2 = nn.LSTM(input_size=300, hidden_size=50, bidirectional=True)
 
         self.fcn1 = nn.Sequential(
-            nn.Linear(203, 100),  # 53
-            nn.ReLU(inplace=True))  # nn.Dropout(0.2) nn.Linear(100, 1),
+            nn.Linear(203, 50),  # 53
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5)
+        )  # nn.Dropout(0.2) nn.Linear(100, 1),
         # self.merge_fcn1.weight.data.normal_()
 
-        # self.final_fcn = nn.Sequential(
-        #     nn.Linear(100, 1),
-        #     nn.Sigmoid(inplace=True))  # nn.Dropout(0.2) nn.Linear(100, 1), nn.ReLU(inplace=True),
+        self.final_fcn = nn.Sequential(
+            nn.Linear(50, 2))  # nn.Dropout(0.2) nn.Linear(100, 1), nn.ReLU(inplace=True),
         # self.final_fcn.weight.data.normal_() nn.ReLU(inplace=True),
-        self.out = nn.Linear(100, 1)
-        self.out_act = nn.Sigmoid()
 
 
 
@@ -272,7 +272,7 @@ class Model(nn.Module):
                                           desc1_encoded[1, :, :].squeeze()
         merged_state1 = torch.cat((forward_state1, backward_state1), dim=1)
 
-        desc2_encoded = self.rnn1(desc2_embed.transpose(1, 0))[1][0]
+        desc2_encoded = self.rnn2(desc2_embed.transpose(1, 0))[1][0]
         forward_state2, backward_state2 = desc2_encoded[0, :, :].squeeze(), \
                                           desc2_encoded[1, :, :].squeeze()
         merged_state2 = torch.cat((forward_state2, backward_state2), dim=1)
@@ -284,13 +284,13 @@ class Model(nn.Module):
         # print(type(desc1_encoded - desc2_encoded))
         sim_added = torch.cat([merged_state1 - merged_state2,
                                merged_state1 * merged_state2,
-                              sim.float()], 1)
+                               sim.float()], 1)
         # print("final: ", sim_added.size())
 
         output = self.fcn1(sim_added)
 
-        final = self.out_act(self.out(output))
-        # print(final.size())
+        final = self.final_fcn(output)
+        #        print(final.size())
         return final
 
 
@@ -304,7 +304,10 @@ optimizer = optim.Adam(matcher.parameters())
 # optimizer = optim.SGD(reader.parameters(), lr = 0.05)
 # torch.cuda.set_device(-1)
 # model_name = 'with_topics_best'
-loss_func = nn.BCELoss()
+class_sample_count = [len(np.where(y_train==0)[0]),len(np.where(y_train==1)[0])]
+weights = 1 / torch.Tensor(class_sample_count)
+# weights = torch.FloatTensor([0.1,1])
+loss_func = nn.CrossEntropyLoss(weight=weights)
 # loss_func = nn.CrossEntropyLoss()
 
 for m in matcher.modules():
@@ -325,7 +328,6 @@ def validate(data_loader, network):
         # Predicting....
         network.eval()
 
-        # matcher.train()
         desc1_idx = Variable(ex[0])
         desc2_idx = Variable(ex[1])
         sim = Variable(ex[2])
@@ -338,19 +340,15 @@ def validate(data_loader, network):
 
         output = network(desc1_embed, desc2_embed, sim)
 
-        # _, pred = torch.max(output, 1)
-        # print((output>0.5).int())
-        pred = (output.squeeze() > 0.5).int()
-        # print(pred)
+        _, pred = torch.max(output, 1)
         truth.append(list(actual.data))
         prediction.append(list(pred.data))
-        correct += (pred.data == actual.data.int()).sum()
+        correct += (pred.data == actual.data).sum()
 
         examples += batch_size
 
     truth_flat = [item for sublist in truth for item in sublist]
     pred_flat = [item for sublist in prediction for item in sublist]
-    # print(sum(truth_flat))
 
     f1 = f1_score(truth_flat, pred_flat)
     recall = recall_score(truth_flat, pred_flat)
@@ -367,28 +365,24 @@ loss_list = []
 train_list = []
 test_list = []
 
-for epoch in range(0, num_epochs):
-# for epoch in range(10, 50):
+# for epoch in range(0, num_epochs):
+for epoch in range(10, 30):
     train_loss = 0
     for idx, sample in enumerate(train_loader):
 
         matcher.train()
-        # print('batch_size=', sample[0].size(0))
         desc1_idx = Variable(sample[0])
         desc2_idx = Variable(sample[1])
         sim = Variable(sample[2])
         actual = Variable(sample[3])
-        if epoch ==1:
-            print(np.unique(sample[3], return_counts=True))
+
         desc1_embed = emb_layer(desc1_idx.squeeze())
         desc2_embed = emb_layer(desc2_idx.squeeze())
-        # ques622_embed = emb_layer(ques622.repeat(ans622.size()[0], 1))
-        #        print(ques622_embed.size())
 
         pred = matcher(desc1_embed, desc2_embed, sim)
 
 
-        loss = loss_func(pred.squeeze(), actual.float())
+        loss = loss_func(pred, actual)
         optimizer.zero_grad()  # set gradients to zero for each iteration
         loss.backward()  # backpropagate
         optimizer.step()  # update parameters
@@ -402,21 +396,19 @@ for epoch in range(0, num_epochs):
             print("Epoch", epoch + 1, "Batch-step", idx, "\t/",
                   len(train_loader), "\tloss", loss.data[0])
             train_loss = 0
-    # break
+
     val_acc, val_f1, val_recall = validate(dev_loader, matcher)
     train_acc, train_f1, train_recall = validate(train_loader, matcher)
-    print(val_acc)
-    print(train_acc)
     print(val_f1)
     print(train_f1)
     test_list.append(val_f1)
     train_list.append(train_f1)
 
-epoch_list = list(range(0, num_epochs))
+epoch_list = list(range(0, len(train_list)))
 
 import matplotlib.pyplot as plt
 
-# plt.plot(epoch_list, test_list, 'r', label='test')
+plt.plot(epoch_list, test_list, 'r', label='test')
 plt.plot(epoch_list, train_list, 'g', label='train')
 plt.title('f1-score vs epoch')
 plt.legend()
@@ -428,11 +420,3 @@ plt.legend()
 plt.figure()
 plt.plot(loss_list)
 plt.title('Loss')
-
-
-# plt.figure()
-# plt.hist(length_google, bins=20, label = 'google')
-# # plt.hist(length_google, bins=20, label = 'google')
-# plt.xlabel('Length of product description')
-# plt.ylabel('Frequency')
-# plt.legend()
