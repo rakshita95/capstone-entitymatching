@@ -45,6 +45,15 @@ def preprocess_phone(number):
 
     return number
 
+def preprocess_zipcode(zipcode):
+
+    zipcode = str(zipcode)
+    zipcode = zipcode.split("-")[0]
+    zipcode = re.sub(r"[^0-9]","",zipcode) #extract only numeric characters
+    
+    return zipcode
+
+
 def preprocess_email(mail):
     """
 
@@ -58,6 +67,7 @@ def preprocess_email(mail):
 def preprocess_special_fields(df,
                               phone_number=None,
                               address_columns=None,
+                              zip_code=None,
                               geocode_address=False,
                               api_key=None):
     """
@@ -83,6 +93,9 @@ def preprocess_special_fields(df,
 
     if phone_number:
         df[phone_number] = df[phone_number].apply(preprocess_phone)
+    if zip_code:
+        df[zip_code] = df[zip_code].apply(preprocess_zipcode)
+        #df[zip_code] = df[zip_code].astype(int) #commented out bc everything cast to string type later on
 
     #TODO: add e-mail preprocessing.
 

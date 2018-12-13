@@ -1,5 +1,4 @@
 import os
-
 import numpy as np
 import tensorflow as tf
 
@@ -24,24 +23,71 @@ class DEEPER:
 
 
 
-    def _build_lstm_layers(n_hidden, embed, batch_size, reuse=tf.AUTO_REUSE):
-        """
-        Create computation graph that returns output tensors of the recognition
-        network: a tensor of means and a tensor of log standard deviations that
-        define the factorized latent distribution q(z).
-        """
-        with tf.variable_scope('lstm', reuse=reuse):
-            lstms = tf.contrib.rnn.BasicLSTMCell(n_hidden)
-            # Add dropout to the cell
-            # drops = [tf.contrib.rnn.DropoutWrapper(lstm, output_keep_prob=keep_prob_) for lstm in lstms]
-            # Stack up multiple LSTM layers, for deep learning
-            #cell = tf.contrib.rnn.MultiRNNCell(drops)
-            # Getting an initial state of all zeros
-            initial_state = lstms.zero_state(batch_size, tf.float32)
-            # generate prediction
-            lstm_outputs, final_state = tf.nn.dynamic_rnn(lstms, embed, initial_state=initial_state)
+# <<<<<<< HEAD
+    # def _build_lstm_layers(n_hidden, embed, batch_size, reuse=tf.AUTO_REUSE):
+    def BiRNN(x, max_len, n_hidden, reuse=tf.AUTO_REUSE): #weights, biases,
+# =======
+#     def _build_lstm_layers(n_hidden, embed, batch_size, reuse=tf.AUTO_REUSE):
+# >>>>>>> 488183723884ef85fd0412a08d41c6bc10493b4a
+#         """
+#         Create computation graph that returns output tensors of the recognition
+#         network: a tensor of means and a tensor of log standard deviations that
+#         define the factorized latent distribution q(z).
+#         """
+# <<<<<<< HEAD
+        # with tf.variable_scope('lstm', reuse=reuse):
+        #     lstms = tf.contrib.rnn.BasicLSTMCell(n_hidden)
+        #     # Add dropout to the cell
+        #     # drops = [tf.contrib.rnn.DropoutWrapper(lstm, output_keep_prob=keep_prob_) for lstm in lstms]
+        #     # Stack up multiple LSTM layers, for deep learning
+        #     #cell = tf.contrib.rnn.MultiRNNCell(drops)
+        #     # Getting an initial state of all zeros
+        #     initial_state = lstms.zero_state(batch_size, tf.float32)
+        #     # generate prediction
+        #     lstm_outputs, final_state = tf.nn.dynamic_rnn(lstms, embed, initial_state=initial_state)
+        #
+        # return (lstm_outputs, final_state)
 
-            return (lstm_outputs, final_state)
+        with tf.variable_scope('lstm', reuse=reuse):
+            # Prepare data shape to match `rnn` function requirements
+            # Current data input shape: (batch_size, max_len, embed_dim)
+            # Required shape: 'timesteps' tensors list of shape (batch_size, embed_dim=300)
+
+            # Unstack to get a list of 'timesteps' tensors of shape (batch_size, num_input)
+            x = tf.unstack(x, max_len, 1)
+
+
+            # BiRNN(x, W, b, timesteps, num_hidden_units)
+            # Define lstm cells with tensorflow
+            # Forward direction cell
+            lstm_fw_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
+            # Backward direction cell
+            lstm_bw_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
+
+            # Get BiRNN cell output
+            outputs, _, _ = tf.contrib.rnn.static_bidirectional_rnn(lstm_fw_cell,
+                                                         lstm_bw_cell, x,
+                                                         dtype=tf.float32)
+
+            # Linear activation, using rnn inner loop last output
+        return tf.matmul(outputs[-1], weights) + biases
+        return (lstm_outputs, final_state)
+
+
+# =======
+#         with tf.variable_scope('lstm', reuse=reuse):
+#             lstms = tf.contrib.rnn.BasicLSTMCell(n_hidden)
+#             # Add dropout to the cell
+#             # drops = [tf.contrib.rnn.DropoutWrapper(lstm, output_keep_prob=keep_prob_) for lstm in lstms]
+#             # Stack up multiple LSTM layers, for deep learning
+#             #cell = tf.contrib.rnn.MultiRNNCell(drops)
+#             # Getting an initial state of all zeros
+#             initial_state = lstms.zero_state(batch_size, tf.float32)
+#             # generate prediction
+#             lstm_outputs, final_state = tf.nn.dynamic_rnn(lstms, embed, initial_state=initial_state)
+#
+#             return (lstm_outputs, final_state)
+# >>>>>>> 488183723884ef85fd0412a08d41c6bc10493b4a
 
     def _create_network(self):
         """

@@ -1,6 +1,8 @@
 '''
 Serena Zhang
 Nov 5 2018
+
+Charissa edited Dec 1 2018
 '''
 
 import itertools
@@ -17,24 +19,23 @@ class similarities():
         pass
 
     @staticmethod
-    def __gen_cross_product(matrix_1,matrix_2,func,embedding = False):
+    def __gen_row_wise(matrix_1,matrix_2,func,embedding = False):
         """
         This function gets called when a certain type of similarity is calculated.
         It is a private function that can only be called within similarities()
 
         :param matrix_1, matrix2:
-        two numpy matrices that share the same shape[1] (i.e. number of fields(price, year etc)),
-        but with different shape[0] (i.e number of samples)
+        two numpy matrices that share the same shape
         there might or might not be shape[2] as it can be a vector or a value
         :param func: function to calculate similarity
         :param num: whether it calculates numerical similarities. default is True
         :return:
         """
-        matrix_1_num_sample, matrix_2_num_sample = matrix_1.shape[0], matrix_2.shape[0]
-        num_fields = matrix_1.shape[1] # same as matrix_2.shape[2]
+        matrix_1_num_sample = matrix_1.shape[0] # same as matrix_2.shape[0]
+        num_fields = matrix_1.shape[1] # same as matrix_2.shape[1]
 
-        output = np.empty(shape = (matrix_1_num_sample*matrix_2_num_sample,num_fields))
-        for (ind, (array_1,array_2)) in enumerate(itertools.product(matrix_1,matrix_2)):
+        output = np.empty(shape = (matrix_1_num_sample,num_fields))
+        for (ind, (array_1,array_2)) in enumerate(zip(matrix_1,matrix_2)):
             if embedding == True:
                 output[ind] = func(array_1,array_2)
             else:
@@ -65,10 +66,10 @@ class similarities():
             return np.round(np.min((a, b), axis=0) / np.max((a, b), axis=0), 3)
 
         if method == "scaled_gaussian":
-            out = similarities().__gen_cross_product(matrix_1, matrix_2, scaled_gaussian)
+            out = similarities().__gen_row_wise(matrix_1, matrix_2, scaled_gaussian)
 
         elif method == "min_max":
-            out = similarities().__gen_cross_product(matrix_1, matrix_2, min_max)
+            out = similarities().__gen_row_wise(matrix_1, matrix_2, min_max)
         return out
 
     def vector_similarity_on_matrix(self, matrix_1, matrix_2, method = "cosine"):
@@ -133,11 +134,11 @@ class similarities():
             tmp = [jaccard_string(x,y) for i, x in enumerate(a) for j, y in enumerate(b) if i == j]
             return np.asarray(tmp)
         if method == "lavenshtein":
-            out = similarities().__gen_cross_product(matrix_1,matrix_2,lavenshtein)
+            out = similarities().__gen_row_wise(matrix_1,matrix_2,lavenshtein)
         elif method == "jaro_winkler":
-            out = similarities().__gen_cross_product(matrix_1, matrix_2, jaro)
+            out = similarities().__gen_row_wise(matrix_1, matrix_2, jaro)
         elif method == "jaccard":
-            out = similarities().__gen_cross_product(matrix_1,matrix_2,jaccard)
+            out = similarities().__gen_row_wise(matrix_1,matrix_2,jaccard)
         
         return out
 
