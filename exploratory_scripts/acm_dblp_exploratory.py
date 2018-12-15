@@ -28,13 +28,13 @@ from modules.preprocessing import Preprocessor
 '''
 read data
 '''
-df1 = pd.read_csv("data/acm_dblp/full/ACM.csv", engine='python')
-df2 = pd.read_csv("data/acm_dblp/full/DBLP2.csv", engine='python')
-match_df = pd.read_csv("data/acm_dblp/full/DBLP-ACM_perfectMapping.csv")
+#df1 = pd.read_csv("data/acm_dblp/full/ACM.csv", engine='python')
+#df2 = pd.read_csv("data/acm_dblp/full/DBLP2.csv", engine='python')
+#match_df = pd.read_csv("data/acm_dblp/full/DBLP-ACM_perfectMapping.csv")
 
-#df1 = pd.read_csv("data/acm_dblp/sample/acm_sample.csv")
-#df2 = pd.read_csv("data/acm_dblp/sample/dblp_sample.csv")
-#match_df = pd.read_csv("data/acm_dblp/sample/acm_dblp_sample_match.csv")
+df1 = pd.read_csv("data/acm_dblp/sample/acm_sample.csv")
+df2 = pd.read_csv("data/acm_dblp/sample/dblp_sample.csv")
+match_df = pd.read_csv("data/acm_dblp/sample/acm_dblp_sample_match.csv")
 
 '''
 specify id names
@@ -283,6 +283,7 @@ print("\tPrecision: %1.3f" % precision_score(y_test, y_pred_rf))
 print("\tRecall: %1.3f" % recall_score(y_test, y_pred_rf))
 print("\tF1: %1.3f" % f1_score(y_test, y_pred_rf))
 print("\tAccuracy: {}".format(sum(y_pred_rf==y_test)/len(y_test)))
+
 
 
 # save the classifier
