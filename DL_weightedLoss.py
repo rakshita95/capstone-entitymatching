@@ -97,13 +97,13 @@ for m in num_final_data, spc_final_data:#, embed_mean_data, embed_max_data, embe
 
 sim = np.concatenate([i for i in non_empty], axis = 1)
 y = gen_labels(df1_id_col, df2_id_col, match_df, 'idAmazon', 'idGoogleBase')
-# sim_train, sim_test, y_train, y_test = train_test_split(sim, y, test_size = 0.33, stratify = y, random_state=42)
-sim_train, sim_test, y_train, y_test, desc_train, desc_test = train_test_split(
-                     sim,
-                     y, merged,
-                     test_size=0.33,
-                     stratify=y,
-                     random_state=42)
+sim_train, sim_test, y_train, y_test = train_test_split(sim, y, test_size = 0.33, stratify = y, random_state=42)
+# sim_train, sim_test, y_train, y_test, desc_train, desc_test = train_test_split(
+#                      sim,
+#                      y, merged,
+#                      test_size=0.33,
+#                      stratify=y,
+#                      random_state=42)
 print(sum(y_train), sum(y_test))
 print(len(y_train), len(y_test))
 sim_dev, sim_finaltest, y_dev, y_finaltest, desc_dev, desc_finaltest = train_test_split(
@@ -298,7 +298,7 @@ class Model(nn.Module):
 Initialize model
 '''
 # Initialize the model
-matcher = Model()  # .cuda()
+matcher = Model()#.cuda()
 optimizer = optim.Adam(matcher.parameters())
 # optimizer = optim.Adadelta(reader.parameters(), lr=0.001)
 # optimizer = optim.SGD(reader.parameters(), lr = 0.05)
