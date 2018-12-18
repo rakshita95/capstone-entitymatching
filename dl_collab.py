@@ -4,6 +4,7 @@ sys.path.append('/anaconda/lib/python3.6/site-packages')
 from modules.preprocessing import Preprocessing
 from modules.preprocessing.generate_labels import gen_labels
 from modules.feature_generation.gen_similarities import similarities
+from sklearn.model_selection import train_test_split
 
 import pandas as pd
 import torch
@@ -19,6 +20,10 @@ import nltk
 from modules.preprocessing.process_text import Process_text
 from sklearn.metrics import precision_recall_fscore_support, f1_score, recall_score
 
+random_seed = 11
+np.random.seed(random_seed)
+torch.manual_seed(random_seed)
+torch.cuda.manual_seed(random_seed)
 
 def tokenize_normalize_sentence(sentence):
     """
@@ -96,16 +101,15 @@ for m in num_final_data, spc_final_data:#, embed_mean_data, embed_max_data, embe
 
 sim = np.concatenate([i for i in non_empty], axis = 1)
 y = gen_labels(df1_id_col, df2_id_col, match_df, 'idAmazon', 'idGoogleBase')
-# sim_train, sim_test, y_train, y_test = train_test_split(sim, y, test_size = 0.33, stratify = y, random_state=42)
-sim_train, sim_test, y_train, y_test, desc_train, desc_test = train_test_split(
-                     sim,
-                     y, merged,
-                     test_size=0.33,
-                     stratify=y,
-                     random_state=42)
-print("train_true:", sum(y_train), "test_true: ",sum(y_test))
-print("train_size: ", len(y_train), "test_size: ", len(y_test))
-
+sim_train, sim_test, y_train, y_test = train_test_split(sim, y, test_size = 0.33, stratify = y, random_state=42)
+# sim_train, sim_test, y_train, y_test, desc_train, desc_test = train_test_split(
+#                      sim,
+#                      y, merged,
+#                      test_size=0.33,
+#                      stratify=y,
+#                      random_state=42)
+print(sum(y_train), sum(y_test))
+print(len(y_train), len(y_test))
 sim_dev, sim_finaltest, y_dev, y_finaltest, desc_dev, desc_finaltest = train_test_split(
                      sim_test,
                      y_test, desc_test,
@@ -129,8 +133,8 @@ class Transform(Dataset):
         self.desc = description
         self.label = label
         self.word2idx = word2idx
-        self.max_len_desc1 = 114#219-1997
-        self.max_len_desc2 = 52#42-42
+        self.max_len_desc1 = 219#219-1989
+        self.max_len_desc2 = 42#42-42
 
     def __len__(self):
         return len(self.label)#+len(self.desc)+len(self.sim)
@@ -145,9 +149,9 @@ class Transform(Dataset):
         desc2_idx1 = [self.word2idx.get(word, 1) for word in desc2]
 
         if len(desc1_idx1) > self.max_len_desc1:
-            desc1_idx1 = desc1_idx1[:self.max_len_desc1]
-        if len(desc2_idx1) > self.max_len_desc2:
-            desc2_idx1 = desc2_idx1[:self.max_len_desc2]
+            desc1_idx1 = desc1_idx1[:50]
+        if len(desc2_idx1) > self.max_len_desc1:
+            desc2_idx1 = desc2_idx1[:50]
 
         # Zero pad
         desc1_idx = LongTensor(1, self.max_len_desc1).zero_()  # N X max_len
@@ -226,9 +230,10 @@ def load_embeddings(word2idx, glove_file):
     return weights_matrix
 
 
-weights_matrix = load_embeddings(word2idx, '/Users/serenazhang/Desktop/capstone/capstone-entitymatching/glove/glove.840B.300d.txt')
+weights_matrix = load_embeddings(word2idx, '/Users/rakshitanagalla/Desktop/Proj\
+ect/do/glove.6B/glove.840B.300d.txt')
 emb_layer = nn.Embedding(num_embeddings=len(word2idx), embedding_dim=300,
-                         padding_idx=0)
+                         padding_idx=0).cuda()
 emb_layer.weight.data.copy_(torch.from_numpy(weights_matrix))
 emb_layer.weight.requires_grad = False
 
@@ -297,11 +302,11 @@ class Model(nn.Module):
 Initialize model
 '''
 # Initialize the model
-matcher = Model()#.cuda()
+matcher = Model().cuda()
 optimizer = optim.Adam(matcher.parameters())
 # optimizer = optim.Adadelta(reader.parameters(), lr=0.001)
 # optimizer = optim.SGD(reader.parameters(), lr = 0.05)
-# torch.cuda.set_device(-1)
+torch.cuda.set_device(-1)
 # model_name = 'with_topics_best'
 class_sample_count = [len(np.where(y_train==0)[0]),len(np.where(y_train==1)[0])]
 weights = 1 / torch.Tensor(class_sample_count)
@@ -327,10 +332,10 @@ def validate(data_loader, network):
         # Predicting....
         network.eval()
 
-        desc1_idx = Variable(ex[0])
-        desc2_idx = Variable(ex[1])
-        sim = Variable(ex[2])
-        actual = Variable(ex[3])
+        desc1_idx = Variable(ex[0]).cuda()
+        desc2_idx = Variable(ex[1]).cuda()
+        sim = Variable(ex[2]).cuda()
+        actual = Variable(ex[3]).cuda()
 
         desc1_embed = emb_layer(desc1_idx.squeeze())
         desc2_embed = emb_layer(desc2_idx.squeeze())
@@ -364,16 +369,16 @@ loss_list = []
 train_list = []
 test_list = []
 
-for epoch in range(0, num_epochs):
-#for epoch in range(10, 30):
+# for epoch in range(0, num_epochs):
+for epoch in range(10, 30):
     train_loss = 0
     for idx, sample in enumerate(train_loader):
 
         matcher.train()
-        desc1_idx = Variable(sample[0])
-        desc2_idx = Variable(sample[1])
-        sim = Variable(sample[2])
-        actual = Variable(sample[3])
+        desc1_idx = Variable(sample[0]).cuda()
+        desc2_idx = Variable(sample[1]).cuda()
+        sim = Variable(sample[2]).cuda()
+        actual = Variable(sample[3]).cuda()
 
         desc1_embed = emb_layer(desc1_idx.squeeze())
         desc2_embed = emb_layer(desc2_idx.squeeze())
@@ -391,14 +396,10 @@ for epoch in range(0, num_epochs):
 
         train_loss += loss.data[0]
         # print(idx)
-        if (idx % 50 == 0):
+        if (idx % 25 == 0):
             print("Epoch", epoch + 1, "Batch-step", idx, "\t/",
                   len(train_loader), "\tloss", loss.data[0])
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': matcher.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict()
-        }, str(epoch) + "model")
+            train_loss = 0
 
     val_acc, val_f1, val_recall = validate(dev_loader, matcher)
     train_acc, train_f1, train_recall = validate(train_loader, matcher)
@@ -409,4 +410,25 @@ for epoch in range(0, num_epochs):
 
 epoch_list = list(range(0, len(train_list)))
 
-test_acc, test_f1, test_recall, truth, pred = validate(dev_loader, matcher_loaded)
+import matplotlib.pyplot as plt
+
+plt.plot(epoch_list, test_list, 'r', label='test')
+plt.plot(epoch_list, train_list, 'g', label='train')
+plt.title('f1-score vs epoch')
+plt.legend()
+
+# plt.figure()
+# plt.plot(loss_list[500:])
+# plt.title('Loss')
+
+plt.figure()
+plt.plot(loss_list)
+plt.title('Loss')
+
+'''
+Loading and saving model
+'''
+model_name_cur = "matcher_"+time_id+"_epoch_"+str(epoch+1)+"_F1_"+str(round(f1*100,2)).replace('.','_')+".mdl"
+torch.save(matcher.state_dict(), "data/models/"+model_name_cur+'.pt')
+matcher.load_state_dict(torch.load("data/models/"+model_name_cur+'.pt'))
+

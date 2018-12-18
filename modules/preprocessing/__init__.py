@@ -509,4 +509,5 @@ class Preprocessing_row():
                           "special_fields":[df1_special, df2_special],
                           "word_embedding_fields":[df1_embed, df2_embed]
                           }
+
         return processed_data
