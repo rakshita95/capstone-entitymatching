@@ -4,7 +4,6 @@ sys.path.append('/anaconda/lib/python3.6/site-packages')
 from modules.preprocessing import Preprocessing
 from modules.preprocessing.generate_labels import gen_labels
 from modules.feature_generation.gen_similarities import similarities
-from sklearn.model_selection import train_test_split
 
 import pandas as pd
 import torch
@@ -41,9 +40,9 @@ def tokenize_normalize_sentence(sentence):
 
 batch_size = 100
 
-df1 = pd.read_csv("data/amazon_google/sample/amazon_sample.csv")
-df2 = pd.read_csv("data/amazon_google/sample/google_sample.csv")
-match_df = pd.read_csv("data/amazon_google/sample/amazon_google_sample_match.csv")
+df1 = pd.read_csv("data/amazon_google/sample/amazon_sample_v1.csv")
+df2 = pd.read_csv("data/amazon_google/sample/google_sample_v1.csv")
+match_df = pd.read_csv("data/amazon_google/sample/amazon_google_sample_match_v1.csv")
 
 df1['description'] = df1['description'].apply(str).apply(tokenize_normalize_sentence)
 df2['description'] = df2['description'].apply(str).apply(tokenize_normalize_sentence)
@@ -104,8 +103,8 @@ sim_train, sim_test, y_train, y_test, desc_train, desc_test = train_test_split(
                      test_size=0.33,
                      stratify=y,
                      random_state=42)
-print(sum(y_train), sum(y_test))
-print(len(y_train), len(y_test))
+print("train_true:", sum(y_train), "test_true: ",sum(y_test))
+print("train_size: ", len(y_train), "test_size: ", len(y_test))
 sim_dev, sim_finaltest, y_dev, y_finaltest, desc_dev, desc_finaltest = train_test_split(
                      sim_test,
                      y_test, desc_test,
@@ -129,8 +128,8 @@ class Transform(Dataset):
         self.desc = description
         self.label = label
         self.word2idx = word2idx
-        self.max_len_desc1 = 219#219-1989
-        self.max_len_desc2 = 42#42-42
+        self.max_len_desc1 = 114#219-1997
+        self.max_len_desc2 = 52#42-42
 
     def __len__(self):
         return len(self.label)#+len(self.desc)+len(self.sim)
@@ -145,9 +144,9 @@ class Transform(Dataset):
         desc2_idx1 = [self.word2idx.get(word, 1) for word in desc2]
 
         if len(desc1_idx1) > self.max_len_desc1:
-            desc1_idx1 = desc1_idx1[:50]
-        if len(desc2_idx1) > self.max_len_desc1:
-            desc2_idx1 = desc2_idx1[:50]
+            desc1_idx1 = desc1_idx1[:self.max_len_desc1]
+        if len(desc2_idx1) > self.max_len_desc2:
+            desc2_idx1 = desc2_idx1[:self.max_len_desc2]
 
         # Zero pad
         desc1_idx = LongTensor(1, self.max_len_desc1).zero_()  # N X max_len
@@ -226,8 +225,7 @@ def load_embeddings(word2idx, glove_file):
     return weights_matrix
 
 
-weights_matrix = load_embeddings(word2idx, '/Users/rakshitanagalla/Desktop/Proj\
-ect/do/glove.6B/glove.840B.300d.txt')
+weights_matrix = load_embeddings(word2idx, '/Users/serenazhang/Desktop/capstone/capstone-entitymatching/glove/glove.840B.300d.txt')
 emb_layer = nn.Embedding(num_embeddings=len(word2idx), embedding_dim=300,
                          padding_idx=0)
 emb_layer.weight.data.copy_(torch.from_numpy(weights_matrix))
@@ -365,8 +363,8 @@ loss_list = []
 train_list = []
 test_list = []
 
-# for epoch in range(0, num_epochs):
-for epoch in range(10, 30):
+for epoch in range(0, num_epochs):
+#for epoch in range(10, 30):
     train_loss = 0
     for idx, sample in enumerate(train_loader):
 
@@ -392,10 +390,14 @@ for epoch in range(10, 30):
 
         train_loss += loss.data[0]
         # print(idx)
-        if (idx % 25 == 0):
+        if (idx % 50 == 0):
             print("Epoch", epoch + 1, "Batch-step", idx, "\t/",
                   len(train_loader), "\tloss", loss.data[0])
-            train_loss = 0
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': matcher.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict()
+        }, str(epoch) + "model")
 
     val_acc, val_f1, val_recall = validate(dev_loader, matcher)
     train_acc, train_f1, train_recall = validate(train_loader, matcher)
@@ -406,17 +408,4 @@ for epoch in range(10, 30):
 
 epoch_list = list(range(0, len(train_list)))
 
-import matplotlib.pyplot as plt
-
-plt.plot(epoch_list, test_list, 'r', label='test')
-plt.plot(epoch_list, train_list, 'g', label='train')
-plt.title('f1-score vs epoch')
-plt.legend()
-
-# plt.figure()
-# plt.plot(loss_list[500:])
-# plt.title('Loss')
-
-plt.figure()
-plt.plot(loss_list)
-plt.title('Loss')
+test_acc, test_f1, test_recall, truth, pred = validate(dev_loader, matcher_loaded)
