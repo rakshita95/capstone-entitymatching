@@ -4,7 +4,6 @@ sys.path.append('/anaconda/lib/python3.6/site-packages')
 from modules.preprocessing import Preprocessing
 from modules.preprocessing.generate_labels import gen_labels
 from modules.feature_generation.gen_similarities import similarities
-from sklearn.model_selection import train_test_split
 
 import pandas as pd
 import torch
@@ -41,9 +40,9 @@ def tokenize_normalize_sentence(sentence):
 
 batch_size = 100
 
-df1 = pd.read_csv("data/amazon_google/full/Amazon.csv", encoding = "ISO-8859-1")
-df2 = pd.read_csv("data/amazon_google/full/GoogleProducts.csv", encoding = "ISO-8859-1")
-match_df = pd.read_csv("data/amazon_google/full/Amazon_GoogleProducts_perfectMapping.csv", encoding = "ISO-8859-1")
+df1 = pd.read_csv("data/amazon_google/sample/amazon_sample_v1.csv")
+df2 = pd.read_csv("data/amazon_google/sample/google_sample_v1.csv")
+match_df = pd.read_csv("data/amazon_google/sample/amazon_google_sample_match_v1.csv")
 
 df1['description'] = df1['description'].apply(str).apply(tokenize_normalize_sentence)
 df2['description'] = df2['description'].apply(str).apply(tokenize_normalize_sentence)
@@ -57,9 +56,6 @@ for i, word in enumerate(all_words):
         word2idx[word] = i
 
 print('#words', len(word2idx))
-import json
-with open("word2idx", "w") as fp:
-   json.dump(word2idx, fp)
 
 df1_id = 'id'
 df2_id = 'id'
@@ -107,12 +103,13 @@ sim_train, sim_test, y_train, y_test, desc_train, desc_test = train_test_split(
                      test_size=0.33,
                      stratify=y,
                      random_state=42)
-print(sum(y_train), sum(y_test))
-print(len(y_train), len(y_test))
+print("train_true:", sum(y_train), "test_true: ",sum(y_test))
+print("train_size: ", len(y_train), "test_size: ", len(y_test))
+
 sim_dev, sim_finaltest, y_dev, y_finaltest, desc_dev, desc_finaltest = train_test_split(
                      sim_test,
                      y_test, desc_test,
-                     test_size=0.6,
+                     test_size=3000,
                      stratify=y_test,
                      random_state=42)
 print(sum(y_finaltest), sum(y_dev))
@@ -132,8 +129,8 @@ class Transform(Dataset):
         self.desc = description
         self.label = label
         self.word2idx = word2idx
-        self.max_len_desc1 = 219#219-1989
-        self.max_len_desc2 = 42#42-42
+        self.max_len_desc1 = 114#219-1997
+        self.max_len_desc2 = 52#42-42
 
     def __len__(self):
         return len(self.label)#+len(self.desc)+len(self.sim)
@@ -211,7 +208,7 @@ def load_embeddings(word2idx, glove_file):
             parts = line.split()
             word = parts[0].decode()  # .lower()
             nums = map(float, parts[1:])
-            if word in corpus_words:
+            if (word in corpus_words):
                 glove_big[word] = list(nums)
 
     idx2word = {v: k for k, v in word2idx.items()}
@@ -229,14 +226,12 @@ def load_embeddings(word2idx, glove_file):
     return weights_matrix
 
 
-weights_matrix = load_embeddings(word2idx, '/Users/rakshitanagalla/Desktop/Proj\
-ect/do/glove.6B/glove.840B.300d.txt')
+weights_matrix = load_embeddings(word2idx, '/Users/serenazhang/Desktop/capstone/capstone-entitymatching/glove/glove.840B.300d.txt')
 emb_layer = nn.Embedding(num_embeddings=len(word2idx), embedding_dim=300,
                          padding_idx=0)
 emb_layer.weight.data.copy_(torch.from_numpy(weights_matrix))
 emb_layer.weight.requires_grad = False
 
-np.save('glove_weights.npy', weights_matrix)
 
 '''
 Model Definition
@@ -369,8 +364,8 @@ loss_list = []
 train_list = []
 test_list = []
 
-# for epoch in range(0, num_epochs):
-for epoch in range(10, 20):
+for epoch in range(0, num_epochs):
+#for epoch in range(10, 30):
     train_loss = 0
     for idx, sample in enumerate(train_loader):
 
@@ -396,10 +391,14 @@ for epoch in range(10, 20):
 
         train_loss += loss.data[0]
         # print(idx)
-        if (idx % 25 == 0):
+        if (idx % 50 == 0):
             print("Epoch", epoch + 1, "Batch-step", idx, "\t/",
                   len(train_loader), "\tloss", loss.data[0])
-            train_loss = 0
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': matcher.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict()
+        }, str(epoch) + "model")
 
     val_acc, val_f1, val_recall = validate(dev_loader, matcher)
     train_acc, train_f1, train_recall = validate(train_loader, matcher)
@@ -410,17 +409,4 @@ for epoch in range(10, 20):
 
 epoch_list = list(range(0, len(train_list)))
 
-import matplotlib.pyplot as plt
-
-plt.plot(epoch_list, test_list, 'r', label='test')
-plt.plot(epoch_list, train_list, 'g', label='train')
-plt.title('f1-score vs epoch')
-plt.legend()
-
-# plt.figure()
-# plt.plot(loss_list[500:])
-# plt.title('Loss')
-
-plt.figure()
-plt.plot(loss_list)
-plt.title('Loss')
+test_acc, test_f1, test_recall, truth, pred = validate(dev_loader, matcher_loaded)
